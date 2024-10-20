@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct VertiProApp: App {
+    @StateObject private var authViewModel = AuthViewModel()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+                MainTabView()
+            
         }
+
     }
 }

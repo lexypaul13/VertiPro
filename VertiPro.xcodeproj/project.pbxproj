@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		57233B092CBB2D89009C8512 /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57233B082CBB2D89009C8512 /* ARKit.framework */; platformFilters = (ios, xros, ); };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		5719DECD2CA916DD0001E1BD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,11 +31,25 @@
 		5719DEBB2CA916DB0001E1BD /* VertiPro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VertiPro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5719DECC2CA916DD0001E1BD /* VertiProTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VertiProTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5719DED62CA916DD0001E1BD /* VertiProUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VertiProUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		57233B082CBB2D89009C8512 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/ARKit.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5719DF0B2CA92D430001E1BD /* Exceptions for "VertiPro" folder in "VertiPro" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5719DEBA2CA916DB0001E1BD /* VertiPro */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5719DEBD2CA916DB0001E1BD /* VertiPro */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5719DF0B2CA92D430001E1BD /* Exceptions for "VertiPro" folder in "VertiPro" target */,
+			);
 			path = VertiPro;
 			sourceTree = "<group>";
 		};
@@ -52,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				57233B092CBB2D89009C8512 /* ARKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +97,7 @@
 				5719DEBD2CA916DB0001E1BD /* VertiPro */,
 				5719DECF2CA916DD0001E1BD /* VertiProTests */,
 				5719DED92CA916DD0001E1BD /* VertiProUITests */,
+				57233B072CBB2D89009C8512 /* Frameworks */,
 				5719DEBC2CA916DB0001E1BD /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +110,14 @@
 				5719DED62CA916DD0001E1BD /* VertiProUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		57233B072CBB2D89009C8512 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				57233B082CBB2D89009C8512 /* ARKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -392,8 +420,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"VertiPro/Preview Content\"";
+				DEVELOPMENT_TEAM = XP8B6WBPCD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VertiPro/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -404,7 +434,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
@@ -429,8 +459,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"VertiPro/Preview Content\"";
+				DEVELOPMENT_TEAM = XP8B6WBPCD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VertiPro/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -441,7 +473,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
