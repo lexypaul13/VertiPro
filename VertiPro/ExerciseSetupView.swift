@@ -13,6 +13,7 @@ struct ExerciseSetupView: View {
     @State private var speed = 2.0
     @State private var headMovement = "All"
     @State private var duration = 30
+    @State private var showingExercise = false
 
     var body: some View {
         VStack(spacing: 30) {
@@ -60,20 +61,16 @@ struct ExerciseSetupView: View {
             Spacer()
 
             // Begin Exercise NavigationLink
-            NavigationLink(destination: ExerciseView(
-                dizzinessLevel: dizzinessLevel,
-                speed: speed,
-                headMovement: headMovement,
-                duration: duration
-            )) {
-                Text("Begin Exercise")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue) // Replace with Color.primaryBlue if defined
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+            Button("Start Exercise") {
+                showingExercise = true
+            }
+            .fullScreenCover(isPresented: $showingExercise) {
+                ExerciseView(
+                    dizzinessLevel: dizzinessLevel,
+                    speed: speed,
+                    headMovement: headMovement,
+                    duration: duration
+                )
             }
             .padding(.horizontal)
             .padding(.bottom, 20)

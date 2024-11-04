@@ -8,9 +8,14 @@
 import Foundation
 
 enum Direction: String, CaseIterable, Codable {
-    case left
-    case right
-    case up
-    case down
+    case up, down, left, right
+    
+    mutating func next() {
+        switch self {
+        case .up: self = .right
+        case .right: self = .down
+        case .down: self = .left
+        case .left: self = .up
+        }
+    }
 }
-
