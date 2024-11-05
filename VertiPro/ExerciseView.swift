@@ -17,10 +17,9 @@ struct ExerciseView: View {
     @State private var sessionMovements: [Movement] = []
     @State private var targetAppearanceTime: Date = Date()
     @State private var totalTargets: Int = 0
-    @State private var isDeviceMoving = false
-    
-    // Add environment variable for dismissing
     @Environment(\.dismiss) private var dismiss
+    @State private var currentTargetDirection: Direction = .up
+    @State private var directionSequence: DirectionSequence?
     
     init(dizzinessLevel: Double, speed: Double, headMovement: String, duration: Int) {
         self.dizzinessLevel = dizzinessLevel
@@ -32,11 +31,13 @@ struct ExerciseView: View {
     
     var body: some View {
         ZStack {
-            CameraView()
+            // Camera background
+            ARViewContainer(headTracker: headTracker)
                 .edgesIgnoringSafeArea(.all)
             
+            // UI Overlay
             VStack {
-                // Custom back button at the top
+                // Back button
                 HStack {
                     Button(action: {
                         if !isExerciseActive {
@@ -50,20 +51,20 @@ struct ExerciseView: View {
                         .foregroundColor(.white)
                         .padding(.leading)
                     }
-                    .opacity(isExerciseActive ? 0 : 1) // Hide during exercise
+                    .opacity(isExerciseActive ? 0 : 1)
                     
                     Spacer()
                 }
                 .padding(.top, 10)
                 
-                Text("Current Direction: \(headTracker.currentDirection.rawValue)")
+                Text("Target Direction: \(currentTargetDirection.rawValue)")
                     .foregroundColor(.white)
                     .font(.system(size: 24))
                 
                 Spacer()
                 
                 // Arrow
-                ArrowView(direction: headTracker.currentDirection)
+                ArrowView(direction: currentTargetDirection)
                     .frame(width: 60, height: 60)
                 
                 Spacer()
@@ -97,41 +98,39 @@ struct ExerciseView: View {
                         .cornerRadius(8)
                 }
                 .padding(.bottom, 20)
-                
-
             }
         }
         .onAppear {
-            headTracker.startTracking()
+            // Clean up any existing session and start fresh
+            headTracker.stopTracking()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                headTracker.startTracking()
+            }
         }
         .onDisappear {
+            // Ensure cleanup when view disappears
             headTracker.stopTracking()
         }
         .fullScreenCover(isPresented: $shouldNavigateToResults) {
             if let session = session {
                 ResultsView(session: session)
+                    .onDisappear {
+                        // Reset tracking when returning from results
+                        headTracker.stopTracking()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            headTracker.startTracking()
+                        }
+                    }
             }
         }
     }
     
-    private func position(for direction: Direction) -> CGPoint {
-        let screen = UIScreen.main.bounds
-        let center = CGPoint(x: screen.midX, y: screen.midY)
-        let offset: CGFloat = 100
-        
-        switch direction {
-        case .up:
-            return CGPoint(x: center.x, y: center.y - offset)
-        case .down:
-            return CGPoint(x: center.x, y: center.y + offset)
-        case .left:
-            return CGPoint(x: center.x - offset, y: center.y)
-        case .right:
-            return CGPoint(x: center.x + offset, y: center.y)
-        }
-    }
-    
     private func startExercise() {
+        headTracker.stopTracking()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            headTracker.startTracking()
+        }
+        
         isExerciseActive = true
         score = 0
         timerValue = duration
@@ -139,16 +138,21 @@ struct ExerciseView: View {
         totalTargets = 0
         targetAppearanceTime = Date()
         
+        directionSequence = DirectionSequence(headMovement: headMovement, speed: speed)
+        
+        startDirectionTimer()
+        
         headTracker.onDirectionChanged = { newDirection in
-            score += 1
-            let movement = Movement(
-                direction: headTracker.currentDirection,
-                responseTime: Date().timeIntervalSince(targetAppearanceTime),
-                timestamp: Date()
-            )
-            sessionMovements.append(movement)
-            totalTargets += 1
-            targetAppearanceTime = Date()
+            if newDirection == currentTargetDirection {
+                score += 1
+                let movement = Movement(
+                    direction: newDirection,
+                    responseTime: Date().timeIntervalSince(targetAppearanceTime),
+                    timestamp: Date()
+                )
+                sessionMovements.append(movement)
+                totalTargets += 1
+            }
         }
         
         startTimer()
@@ -184,15 +188,21 @@ struct ExerciseView: View {
         }
     }
     
-    private var speedMultiplier: Double {
-        switch speed {
-        case 0: return 0.5  // Extra Slow
-        case 1: return 0.75 // Slow
-        case 2: return 1.0  // Normal
-        case 3: return 1.25 // Fast
-        case 4: return 1.5  // Extra Fast
-        default: return 1.0
+    private func startDirectionTimer() {
+        guard let sequence = directionSequence else { return }
+        
+        func scheduleNextDirection() {
+            guard isExerciseActive else { return }
+            
+            currentTargetDirection = sequence.getNextDirection()
+            targetAppearanceTime = Date()
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + sequence.directionDuration) {
+                scheduleNextDirection()
+            }
         }
+        
+        scheduleNextDirection()
     }
 }
 

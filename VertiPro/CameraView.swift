@@ -7,7 +7,7 @@ class CameraViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Setup camera in background
+        view.backgroundColor = .black
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.setupCamera()
         }
@@ -20,8 +20,8 @@ class CameraViewController: UIViewController {
         }
     }
     
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.captureSession?.stopRunning()
         }
@@ -29,50 +29,63 @@ class CameraViewController: UIViewController {
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        DispatchQueue.main.async { [weak self] in
-            self?.previewLayer?.frame = self?.view.bounds ?? .zero
+        if let previewLayer = previewLayer {
+            DispatchQueue.main.async {
+                previewLayer.frame = self.view.bounds
+            }
         }
     }
     
     private func setupCamera() {
         let session = AVCaptureSession()
+        
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                if granted {
+                    DispatchQueue.main.async {
+                        self?.setupCaptureSession()
+                    }
+                }
+            }
+            return
+        }
+        
+        setupCaptureSession()
+    }
+    
+    private func setupCaptureSession() {
+        let session = AVCaptureSession()
         session.beginConfiguration()
         session.sessionPreset = .high
         
-        // Get front camera
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
-            print("Failed to get front camera")
+        guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera,
+                                                      for: .video,
+                                                      position: .front),
+              let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
+              session.canAddInput(videoInput) else {
+            print("Failed to setup video input")
+            session.commitConfiguration()
             return
         }
         
-        // Add input
-        do {
-            let input = try AVCaptureDeviceInput(device: device)
-            if session.canAddInput(input) {
-                session.addInput(input)
-            }
-        } catch {
-            print("Failed to create camera input: \(error.localizedDescription)")
-            return
-        }
-        
+        session.addInput(videoInput)
         session.commitConfiguration()
-        self.captureSession = session
         
-        // Setup preview layer on main thread
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
             let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+            previewLayer.frame = self.view.bounds
             previewLayer.videoGravity = .resizeAspectFill
             previewLayer.connection?.automaticallyAdjustsVideoMirroring = false
             previewLayer.connection?.isVideoMirrored = true
             
+            self.view.layer.sublayers?.removeAll()
             self.view.layer.addSublayer(previewLayer)
-            self.previewLayer = previewLayer
-            previewLayer.frame = self.view.bounds
             
-            // Start the session
+            self.previewLayer = previewLayer
+            self.captureSession = session
+            
             DispatchQueue.global(qos: .userInitiated).async {
                 session.startRunning()
             }
@@ -94,10 +107,13 @@ class CameraViewController: UIViewController {
 
 struct CameraView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> CameraViewController {
-        return CameraViewController()
+        let controller = CameraViewController()
+        return controller
     }
     
-    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {
+        // No updates needed
+    }
     
     static func dismantleUIViewController(_ uiViewController: CameraViewController, coordinator: ()) {
         uiViewController.stopCamera()

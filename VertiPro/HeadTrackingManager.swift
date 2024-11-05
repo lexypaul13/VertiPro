@@ -5,9 +5,12 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
     @Published var currentDirection: Direction = .up
     var onDirectionChanged: ((Direction) -> Void)?
     
-    private let session = ARSession()
+    let session: ARSession = ARSession()
+    
     private var lastUpdateTime = Date()
-    private let minimumTimeBetweenUpdates = 0.5
+    private let minimumTimeBetweenUpdates = 0.3
+    private let angleThreshold: Float = 5.0
+    private var isTracking = false
     
     override init() {
         super.init()
@@ -15,54 +18,85 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
     }
     
     func startTracking() {
+        guard !isTracking else { return }
         guard ARFaceTrackingConfiguration.isSupported else {
             print("Face tracking is not supported on this device")
             return
         }
         
+        isTracking = true
+        
+        // Configure and start AR session
         let configuration = ARFaceTrackingConfiguration()
-        session.run(configuration)
+        configuration.isLightEstimationEnabled = true
+        
+        // Run session with configuration
+        session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
     }
     
     func stopTracking() {
+        guard isTracking else { return }
+        isTracking = false
         session.pause()
     }
     
+    // ARSessionDelegate methods
+    func session(_ session: ARSession, didFailWithError error: Error) {
+        print("AR Session failed: \(error.localizedDescription)")
+        isTracking = false
+    }
+    
+    func sessionWasInterrupted(_ session: ARSession) {
+        print("AR Session was interrupted")
+        isTracking = false
+    }
+    
+    func sessionInterruptionEnded(_ session: ARSession) {
+        print("AR Session interruption ended")
+        startTracking() // Restart tracking when interruption ends
+    }
+    
     func session(_ session: ARSession, didUpdate anchors: [ARAnchor]) {
-        guard let faceAnchor = anchors.first as? ARFaceAnchor,
+        guard isTracking,
+              let faceAnchor = anchors.first as? ARFaceAnchor,
               Date().timeIntervalSince(lastUpdateTime) >= minimumTimeBetweenUpdates else {
             return
         }
         
-        // Create matrix from transform
-        let matrix = simd_float4x4(
-            faceAnchor.transform.columns.0,
-            faceAnchor.transform.columns.1,
-            faceAnchor.transform.columns.2,
-            faceAnchor.transform.columns.3
-        )
-        
-        let eulerAngles = simd_euler_angles_from_matrix(matrix)
-        
-        // Get pitch (x) and yaw (y) angles
-        let pitch = eulerAngles.x
-        let yaw = eulerAngles.y
+        // Get euler angles directly from face anchor
+        let pitch = faceAnchor.transform.eulerAngles.x
+        let yaw = faceAnchor.transform.eulerAngles.y
         
         // Convert to degrees
         let pitchDegrees = pitch * 180 / .pi
         let yawDegrees = yaw * 180 / .pi
         
-        // Determine new direction based on head movement
-        let newDirection: Direction
+        // Print angles for debugging
+        print("Pitch: \(pitchDegrees), Yaw: \(yawDegrees)")
         
-        if abs(pitchDegrees) > abs(yawDegrees) {
-            newDirection = pitchDegrees > 15 ? .down : (pitchDegrees < -15 ? .up : currentDirection)
-        } else {
-            newDirection = yawDegrees > 15 ? .right : (yawDegrees < -15 ? .left : currentDirection)
+        // Determine new direction based on head movement
+        var newDirection = currentDirection
+        
+        // Check vertical movement first with more sensitive thresholds
+        if abs(pitchDegrees) > angleThreshold {
+            if pitchDegrees > angleThreshold {
+                newDirection = .down
+            } else if pitchDegrees < -angleThreshold {
+                newDirection = .up
+            }
+        }
+        // Then check horizontal movement
+        else if abs(yawDegrees) > angleThreshold {
+            if yawDegrees > angleThreshold {
+                newDirection = .right
+            } else if yawDegrees < -angleThreshold {
+                newDirection = .left
+            }
         }
         
         if newDirection != currentDirection {
             DispatchQueue.main.async {
+                print("Direction changed to: \(newDirection)")
                 self.currentDirection = newDirection
                 self.onDirectionChanged?(newDirection)
                 self.lastUpdateTime = Date()
@@ -71,10 +105,11 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
     }
 }
 
-// Helper function to extract euler angles from transform matrix
-func simd_euler_angles_from_matrix(_ matrix: simd_float4x4) -> simd_float3 {
-    let pitch = asin(-matrix[2][0])
-    let yaw = atan2(matrix[2][1], matrix[2][2])
-    let roll = atan2(matrix[1][0], matrix[0][0])
-    return simd_float3(pitch, yaw, roll)
+extension simd_float4x4 {
+    var eulerAngles: SIMD3<Float> {
+        let pitch = asin(-self[2][0])
+        let yaw = atan2(self[2][1], self[2][2])
+        let roll = atan2(self[1][0], self[0][0])
+        return SIMD3(pitch, yaw, roll)
+    }
 }
