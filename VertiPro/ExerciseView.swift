@@ -8,7 +8,7 @@ struct ExerciseView: View {
     let duration: Int
     
     // State Management
-    @StateObject private var motionManager = MotionManager()
+    @StateObject private var headTracker = HeadTrackingManager()
     @State private var score: Int = 0
     @State private var timerValue: Int
     @State private var isExerciseActive = false
@@ -56,14 +56,14 @@ struct ExerciseView: View {
                 }
                 .padding(.top, 10)
                 
-                Text("Current Direction: \(motionManager.currentDirection.rawValue)")
+                Text("Current Direction: \(headTracker.currentDirection.rawValue)")
                     .foregroundColor(.white)
                     .font(.system(size: 24))
                 
                 Spacer()
                 
                 // Arrow
-                ArrowView(direction: motionManager.currentDirection)
+                ArrowView(direction: headTracker.currentDirection)
                     .frame(width: 60, height: 60)
                 
                 Spacer()
@@ -101,6 +101,12 @@ struct ExerciseView: View {
 
             }
         }
+        .onAppear {
+            headTracker.startTracking()
+        }
+        .onDisappear {
+            headTracker.stopTracking()
+        }
         .fullScreenCover(isPresented: $shouldNavigateToResults) {
             if let session = session {
                 ResultsView(session: session)
@@ -133,10 +139,10 @@ struct ExerciseView: View {
         totalTargets = 0
         targetAppearanceTime = Date()
         
-        motionManager.onDirectionChanged = { newDirection in
+        headTracker.onDirectionChanged = { newDirection in
             score += 1
             let movement = Movement(
-                direction: motionManager.currentDirection,
+                direction: headTracker.currentDirection,
                 responseTime: Date().timeIntervalSince(targetAppearanceTime),
                 timestamp: Date()
             )
@@ -145,17 +151,11 @@ struct ExerciseView: View {
             targetAppearanceTime = Date()
         }
         
-        motionManager.onDeviceMoving = { isMoving in
-            isDeviceMoving = isMoving
-        }
-        
-        motionManager.startMotionDetection()
         startTimer()
     }
     
     private func stopExercise() {
         isExerciseActive = false
-        motionManager.stopMotionDetection()
         
         session = ExerciseSession(
             date: Date(),

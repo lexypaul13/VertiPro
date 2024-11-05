@@ -2,10 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>NSCameraUsageDescription</key>
-    <string>The camera is used to display AR content during the exercise.</string>
-    <key>NSFaceIDUsageDescription</key>
-    <string>Face tracking is used to enhance the exercise experience.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera is used to display AR content during the exercise.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face tracking is used to enhance the exercise experience.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>We need access to motion data to track your head movements during exercises.</string>
 </dict>
 </plist>
-

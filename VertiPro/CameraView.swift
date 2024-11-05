@@ -1,53 +1,105 @@
 import SwiftUI
 import AVFoundation
 
-struct CameraView: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: UIScreen.main.bounds)
+class CameraViewController: UIViewController {
+    private var captureSession: AVCaptureSession?
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Setup camera in background
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.setupCamera()
+        }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.captureSession?.startRunning()
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.captureSession?.stopRunning()
+        }
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        DispatchQueue.main.async { [weak self] in
+            self?.previewLayer?.frame = self?.view.bounds ?? .zero
+        }
+    }
+    
+    private func setupCamera() {
+        let session = AVCaptureSession()
+        session.beginConfiguration()
+        session.sessionPreset = .high
         
-        // Setup camera
-        let captureSession = AVCaptureSession()
-        captureSession.sessionPreset = .high // Add this line
+        // Get front camera
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
+            print("Failed to get front camera")
+            return
+        }
         
-        // Check and request camera permissions
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            setupCamera(view, captureSession)
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { granted in
-                if granted {
-                    DispatchQueue.main.async {
-                        self.setupCamera(view, captureSession)
-                    }
-                }
+        // Add input
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            if session.canAddInput(input) {
+                session.addInput(input)
             }
-        default:
-            print("Camera access denied")
+        } catch {
+            print("Failed to create camera input: \(error.localizedDescription)")
+            return
         }
         
-        return view
+        session.commitConfiguration()
+        self.captureSession = session
+        
+        // Setup preview layer on main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+            previewLayer.videoGravity = .resizeAspectFill
+            previewLayer.connection?.automaticallyAdjustsVideoMirroring = false
+            previewLayer.connection?.isVideoMirrored = true
+            
+            self.view.layer.addSublayer(previewLayer)
+            self.previewLayer = previewLayer
+            previewLayer.frame = self.view.bounds
+            
+            // Start the session
+            DispatchQueue.global(qos: .userInitiated).async {
+                session.startRunning()
+            }
+        }
     }
     
-    private func setupCamera(_ view: UIView, _ captureSession: AVCaptureSession) {
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera,
-                                                 for: .video,
-                                                 position: .front) else { return }
-        
-        guard let input = try? AVCaptureDeviceInput(device: device) else { return }
-        
-        if captureSession.canAddInput(input) {
-            captureSession.addInput(input)
-        }
-        
-        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.frame = view.frame
-        previewLayer.videoGravity = .resizeAspectFill
-        
-        DispatchQueue.main.async {
-            view.layer.addSublayer(previewLayer)
-            captureSession.startRunning()
+    func stopCamera() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.captureSession?.stopRunning()
         }
     }
     
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    func startCamera() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.captureSession?.startRunning()
+        }
+    }
+}
+
+struct CameraView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> CameraViewController {
+        return CameraViewController()
+    }
+    
+    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {}
+    
+    static func dismantleUIViewController(_ uiViewController: CameraViewController, coordinator: ()) {
+        uiViewController.stopCamera()
+    }
 }
