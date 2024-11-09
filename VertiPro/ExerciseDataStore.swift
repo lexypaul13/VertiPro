@@ -14,11 +14,11 @@ class ExerciseDataStore: ObservableObject {
     @Published var sessions: [ExerciseSession] = []
     
     private init() {
-        #if DEBUG
+        print("ExerciseDataStore initialized")
+        // Force clear and reload data
+        UserDefaults.standard.removeObject(forKey: "exerciseSessions")
         loadHistoricalData()
-        #else
-        loadSessions()
-        #endif
+        print("Initial load complete - Sessions count: \(sessions.count)")
     }
     
     private func loadHistoricalData() {
@@ -118,12 +118,12 @@ class ExerciseDataStore: ObservableObject {
         }
     }
     
-    #if DEBUG
-    func clearAllData() {
+    func clearAndReloadData() {
+        print("Clearing and reloading data...")
         sessions = []
-        saveSessions()
+        loadHistoricalData()
+        print("Reload complete - Sessions count: \(sessions.count)")
     }
-    #endif
 }
 
 

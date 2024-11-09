@@ -18,140 +18,191 @@ struct ExerciseDataPoint: Identifiable {
 
 struct DashboardView: View {
     @ObservedObject var dataStore = ExerciseDataStore.shared
-
+    
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // Progress Circles
-                HStack(spacing: 20) {
-                    ProgressCircleView(title: "Total Sessions", progress: totalSessionsProgress)
-                    ProgressCircleView(title: "Average Accuracy", progress: averageAccuracyProgress)
-                }
-                .padding()
-                
-                // Chart Section
-                if !dataStore.sessions.isEmpty {
-                    // Chart Title
-                    Text("Average Accuracy Over Time")
-                        .font(.headline)
-                        .padding(.horizontal)
-                    
-                    Chart {
-                        ForEach(dataPoints()) { dataPoint in
-                            LineMark(
-                                x: .value("Date", dataPoint.date),
-                                y: .value("Average Accuracy", dataPoint.averageAccuracy)
-                            )
-                            .foregroundStyle(Color.blue)
-                            .lineStyle(StrokeStyle(lineWidth: 2))
-                        }
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Four Circular Charts in Grid
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 20),
+                        GridItem(.flexible(), spacing: 20)
+                    ], spacing: 20) {
+                        // Total Sessions Circle
+                        CircularProgressView(
+                            title: "Total\nSessions",
+                            value: Double(dataStore.sessions.count),
+                            total: 100,
+                            color: .blue,
+                            showPercentage: false
+                        )
+                        
+                        // Average Accuracy Circle
+                        CircularProgressView(
+                            title: "Average\nAccuracy",
+                            value: averageAccuracy,
+                            total: 100,
+                            color: .green,
+                            showPercentage: true
+                        )
+                        
+                        // Exercise Mode Frequency
+                        CircularChartView(
+                            title: "Exercise Mode",
+                            segments: [
+                                .init(value: Double(exerciseModeCounts.thirtySeconds), color: .cyan, label: "30s"),
+                                .init(value: Double(exerciseModeCounts.sixtySeconds), color: .blue, label: "60s")
+                            ]
+                        )
+                        
+                        // Head Movement Frequency
+                        CircularChartView(
+                            title: "Head Movement",
+                            segments: [
+                                .init(value: Double(headMovementCounts.all), color: .blue, label: "All"),
+                                .init(value: Double(headMovementCounts.upDown), color: .yellow, label: "Up/Down"),
+                                .init(value: Double(headMovementCounts.leftRight), color: .cyan, label: "Left/Right")
+                            ]
+                        )
                     }
-                    .chartYScale(domain: 0...100)
-                    .chartXAxis {
-                        AxisMarks(values: xAxisValues()) { value in
-                            AxisGridLine()
-                            AxisTick()
-                            AxisValueLabel {
-                                if let date = value.as(Date.self) {
-                                    Text(date, format: .dateTime.month(.abbreviated).day())
-                                        .font(.caption2)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                    }
-                    .chartYAxis {
-                        AxisMarks(position: .leading, values: [0, 25, 50, 75, 100]) { value in
-                            AxisGridLine()
-                            AxisTick()
-                            AxisValueLabel {
-                                if let yValue = value.as(Double.self) {
-                                    Text("\(Int(yValue))%")
-                                        .font(.caption2)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                    }
-                    .frame(height: 200)
                     .padding()
-                } else {
-                    Text("No exercise data available. Start your first exercise!")
-                        .padding()
+                    
+                    // Start Exercise Button
+                    NavigationLink(destination: ExerciseSetupView()) {
+                        Text("Start Exercise")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
+                    .padding(.horizontal)
                 }
-                
-                // Start Exercise Button
-                NavigationLink(destination: ExerciseSetupView()) {
-                    Text("Start Exercise")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .padding(.horizontal, 20)
-                }
-                
-                Spacer()
             }
-            .navigationBarTitle("Dashboard", displayMode: .inline)
+            .navigationTitle("Dashboard")
         }
     }
     
-    // Calculate progress values
-    var totalSessionsProgress: Double {
-        let totalSessions = Double(dataStore.sessions.count)
-        let goal = 10.0 // For example, the goal is 10 sessions
-        return min(totalSessions / goal, 1.0)
-    }
-    
-    var averageAccuracyProgress: Double {
+    // Computed Properties
+    private var averageAccuracy: Double {
         let accuracies = dataStore.sessions.map { $0.accuracy }
-        let averageAccuracy = accuracies.isEmpty ? 0 : accuracies.reduce(0, +) / Double(accuracies.count)
-        return averageAccuracy / 100.0 // Since accuracy is out of 100%
+        return accuracies.isEmpty ? 0 : accuracies.reduce(0, +) / Double(accuracies.count)
     }
     
-    // Prepare data points for the chart
-    func dataPoints() -> [ExerciseDataPoint] {
-        let calendar = Calendar.current
-        var points: [ExerciseDataPoint] = []
-        
-        // Group sessions by day
-        let groupedSessions = Dictionary(grouping: dataStore.sessions) { session in
-            calendar.startOfDay(for: session.date)
-        }
-        
-        // Create data points
-        for (date, sessions) in groupedSessions {
-            let totalAccuracy = sessions.reduce(0) { $0 + $1.accuracy }
-            let averageAccuracy = totalAccuracy / Double(sessions.count)
-            points.append(ExerciseDataPoint(date: date, averageAccuracy: averageAccuracy))
-        }
-        
-        // Sort data points by date
-        return points.sorted { $0.date < $1.date }
+    private var exerciseModeCounts: (thirtySeconds: Int, sixtySeconds: Int) {
+        let thirtySeconds = dataStore.sessions.filter { $0.duration <= 30 }.count
+        let sixtySeconds = dataStore.sessions.filter { $0.duration > 30 }.count
+        return (thirtySeconds, sixtySeconds)
     }
     
-    // Helper function to generate x-axis values
-    func xAxisValues() -> [Date] {
-        guard let minDate = dataStore.sessions.map({ $0.date }).min(),
-              let maxDate = dataStore.sessions.map({ $0.date }).max(),
-              minDate != maxDate else {
-            // If only one date or min and max are the same, return the session dates
-            return dataStore.sessions.map { $0.date }
-        }
+    private var headMovementCounts: (all: Int, upDown: Int, leftRight: Int) {
+        let all = dataStore.sessions.filter { session in
+            session.movements.contains { $0.direction == .up || $0.direction == .down } &&
+            session.movements.contains { $0.direction == .left || $0.direction == .right }
+        }.count
         
-        var dates: [Date] = []
-        let totalInterval = maxDate.timeIntervalSince(minDate)
-        let interval = totalInterval / 6 // For 7 labels
+        let upDown = dataStore.sessions.filter { session in
+            session.movements.contains { $0.direction == .up || $0.direction == .down } &&
+            !session.movements.contains { $0.direction == .left || $0.direction == .right }
+        }.count
         
-        for i in 0...6 {
-            let date = minDate.addingTimeInterval(interval * Double(i))
-            dates.append(date)
-        }
-        return dates
+        let leftRight = dataStore.sessions.filter { session in
+            !session.movements.contains { $0.direction == .up || $0.direction == .down } &&
+            session.movements.contains { $0.direction == .left || $0.direction == .right }
+        }.count
+        
+        return (all, upDown, leftRight)
     }
 }
 
+// Circular Progress View for single value circles
+struct CircularProgressView: View {
+    let title: String
+    let value: Double
+    let total: Double
+    let color: Color
+    let showPercentage: Bool
+    
+    var body: some View {
+        VStack {
+            Text(title)
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            
+            ZStack {
+                Circle()
+                    .stroke(color.opacity(0.2), lineWidth: 10)
+                Circle()
+                    .trim(from: 0, to: CGFloat(value/total))
+                    .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                
+                Text(showPercentage ? "\(Int(value))%" : "\(Int(value))")
+                    .font(.title2)
+                    .bold()
+            }
+            .frame(width: 120, height: 120)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
+    }
+}
 
+// Circular Chart View for multiple segments
+struct CircularChartView: View {
+    let title: String
+    let segments: [Segment]
+    
+    struct Segment {
+        let value: Double
+        let color: Color
+        let label: String
+    }
+    
+    private var total: Double {
+        segments.map(\.value).reduce(0, +)
+    }
+    
+    var body: some View {
+        VStack {
+            Text(title)
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 10)
+                
+                ForEach(0..<segments.count, id: \.self) { index in
+                    Circle()
+                        .trim(
+                            from: index == 0 ? 0 : segments[..<index].map(\.value).reduce(0, +) / total,
+                            to: segments[...index].map(\.value).reduce(0, +) / total
+                        )
+                        .stroke(segments[index].color, lineWidth: 10)
+                        .rotationEffect(.degrees(-90))
+                }
+            }
+            .frame(width: 120, height: 120)
+            
+            // Legend
+            VStack(alignment: .leading) {
+                ForEach(segments.indices, id: \.self) { index in
+                    HStack {
+                        Circle()
+                            .fill(segments[index].color)
+                            .frame(width: 8, height: 8)
+                        Text(segments[index].label)
+                            .font(.caption)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
+    }
+}
