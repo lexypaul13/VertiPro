@@ -23,22 +23,22 @@ struct DashboardView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Four Circular Charts in Grid
+                    // Four Charts in Grid
                     LazyVGrid(columns: [
                         GridItem(.flexible(), spacing: 20),
                         GridItem(.flexible(), spacing: 20)
                     ], spacing: 20) {
-                        // Total Sessions Circle
-                        CircularProgressView(
+                        // Total Sessions
+                        ChartCard(
                             title: "Total\nSessions",
                             value: Double(dataStore.sessions.count),
-                            total: 100,
+                            total: Double(dataStore.sessions.count), // Update total to match value
                             color: .blue,
-                            showPercentage: false
+                            showValue: true
                         )
                         
-                        // Average Accuracy Circle
-                        CircularProgressView(
+                        // Average Accuracy
+                        ChartCard(
                             title: "Average\nAccuracy",
                             value: averageAccuracy,
                             total: 100,
@@ -47,21 +47,41 @@ struct DashboardView: View {
                         )
                         
                         // Exercise Mode Frequency
-                        CircularChartView(
+                        PieChartCard(
                             title: "Exercise Mode",
-                            segments: [
-                                .init(value: Double(exerciseModeCounts.thirtySeconds), color: .cyan, label: "30s"),
-                                .init(value: Double(exerciseModeCounts.sixtySeconds), color: .blue, label: "60s")
+                            data: [
+                                ChartData(
+                                    label: "30s",
+                                    value: Double(exerciseModeCounts.thirtySeconds),
+                                    color: ChartData.colorScheme[0]
+                                ),
+                                ChartData(
+                                    label: "60s",
+                                    value: Double(exerciseModeCounts.sixtySeconds),
+                                    color: ChartData.colorScheme[1]
+                                )
                             ]
                         )
                         
                         // Head Movement Frequency
-                        CircularChartView(
+                        PieChartCard(
                             title: "Head Movement",
-                            segments: [
-                                .init(value: Double(headMovementCounts.all), color: .blue, label: "All"),
-                                .init(value: Double(headMovementCounts.upDown), color: .yellow, label: "Up/Down"),
-                                .init(value: Double(headMovementCounts.leftRight), color: .cyan, label: "Left/Right")
+                            data: [
+                                ChartData(
+                                    label: "All",
+                                    value: Double(headMovementCounts.all),
+                                    color: ChartData.colorScheme[0]
+                                ),
+                                ChartData(
+                                    label: "Up/Down",
+                                    value: Double(headMovementCounts.upDown),
+                                    color: ChartData.colorScheme[1]
+                                ),
+                                ChartData(
+                                    label: "Left/Right",
+                                    value: Double(headMovementCounts.leftRight),
+                                    color: ChartData.colorScheme[2]
+                                )
                             ]
                         )
                     }
@@ -82,6 +102,10 @@ struct DashboardView: View {
                 }
             }
             .navigationTitle("Dashboard")
+            .onAppear {
+                // Force reload data when view appears
+                dataStore.clearAndReloadData()
+            }
         }
     }
     
@@ -92,38 +116,54 @@ struct DashboardView: View {
     }
     
     private var exerciseModeCounts: (thirtySeconds: Int, sixtySeconds: Int) {
-        let thirtySeconds = dataStore.sessions.filter { $0.duration <= 30 }.count
-        let sixtySeconds = dataStore.sessions.filter { $0.duration > 30 }.count
+        let thirtySeconds = dataStore.sessions.filter { $0.duration == 30 }.count
+        let sixtySeconds = dataStore.sessions.filter { $0.duration == 60 }.count
+        print("Exercise Mode - Raw counts: 30s: \(thirtySeconds), 60s: \(sixtySeconds)")
         return (thirtySeconds, sixtySeconds)
     }
     
     private var headMovementCounts: (all: Int, upDown: Int, leftRight: Int) {
         let all = dataStore.sessions.filter { session in
-            session.movements.contains { $0.direction == .up || $0.direction == .down } &&
-            session.movements.contains { $0.direction == .left || $0.direction == .right }
+            let hasUpDown = session.movements.contains { $0.direction == .up || $0.direction == .down }
+            let hasLeftRight = session.movements.contains { $0.direction == .left || $0.direction == .right }
+            return hasUpDown && hasLeftRight
         }.count
         
         let upDown = dataStore.sessions.filter { session in
-            session.movements.contains { $0.direction == .up || $0.direction == .down } &&
-            !session.movements.contains { $0.direction == .left || $0.direction == .right }
+            let movements = session.movements
+            return movements.allSatisfy { $0.direction == .up || $0.direction == .down }
         }.count
         
         let leftRight = dataStore.sessions.filter { session in
-            !session.movements.contains { $0.direction == .up || $0.direction == .down } &&
-            session.movements.contains { $0.direction == .left || $0.direction == .right }
+            let movements = session.movements
+            return movements.allSatisfy { $0.direction == .left || $0.direction == .right }
         }.count
         
+        print("Head Movement - Raw counts: all=\(all), upDown=\(upDown), leftRight=\(leftRight)")
         return (all, upDown, leftRight)
     }
 }
 
-// Circular Progress View for single value circles
-struct CircularProgressView: View {
+struct ChartData: Identifiable {
+    let id = UUID()
+    let label: String
+    let value: Double
+    let color: Color
+    
+    static let colorScheme: [Color] = [
+        .blue,      // Annual/All
+        .green,     // Monthly/Up&Down
+        .orange     // Lifetime/Left&Right
+    ]
+}
+
+struct ChartCard: View {
     let title: String
     let value: Double
     let total: Double
     let color: Color
-    let showPercentage: Bool
+    var showPercentage: Bool = false
+    var showValue: Bool = false
     
     var body: some View {
         VStack {
@@ -131,19 +171,32 @@ struct CircularProgressView: View {
                 .font(.headline)
                 .multilineTextAlignment(.center)
             
-            ZStack {
-                Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 10)
-                Circle()
-                    .trim(from: 0, to: CGFloat(value/total))
-                    .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+            Chart {
+                SectorMark(
+                    angle: .value("Value", value),
+                    innerRadius: .ratio(0.6),
+                    angularInset: 1
+                )
+                .foregroundStyle(color.gradient)
                 
-                Text(showPercentage ? "\(Int(value))%" : "\(Int(value))")
+                SectorMark(
+                    angle: .value("Remaining", max(0, total - value)),
+                    innerRadius: .ratio(0.6),
+                    angularInset: 1
+                )
+                .foregroundStyle(color.opacity(0.2))
+            }
+            .frame(height: 120)
+            
+            if showPercentage {
+                Text("\(Int(value))%")
+                    .font(.title2)
+                    .bold()
+            } else if showValue {
+                Text("\(Int(value))")
                     .font(.title2)
                     .bold()
             }
-            .frame(width: 120, height: 120)
         }
         .padding()
         .background(Color.gray.opacity(0.1))
@@ -151,20 +204,9 @@ struct CircularProgressView: View {
     }
 }
 
-// Circular Chart View for multiple segments
-struct CircularChartView: View {
+struct PieChartCard: View {
     let title: String
-    let segments: [Segment]
-    
-    struct Segment {
-        let value: Double
-        let color: Color
-        let label: String
-    }
-    
-    private var total: Double {
-        segments.map(\.value).reduce(0, +)
-    }
+    let data: [ChartData]
     
     var body: some View {
         VStack {
@@ -172,31 +214,24 @@ struct CircularChartView: View {
                 .font(.headline)
                 .multilineTextAlignment(.center)
             
-            ZStack {
-                Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 10)
-                
-                ForEach(0..<segments.count, id: \.self) { index in
-                    Circle()
-                        .trim(
-                            from: index == 0 ? 0 : segments[..<index].map(\.value).reduce(0, +) / total,
-                            to: segments[...index].map(\.value).reduce(0, +) / total
-                        )
-                        .stroke(segments[index].color, lineWidth: 10)
-                        .rotationEffect(.degrees(-90))
-                }
+            Chart(data) { item in
+                SectorMark(
+                    angle: .value(item.label, item.value)
+                )
+                .foregroundStyle(by: .value("Category", item.label))
             }
-            .frame(width: 120, height: 120)
-            
-            // Legend
-            VStack(alignment: .leading) {
-                ForEach(segments.indices, id: \.self) { index in
-                    HStack {
-                        Circle()
-                            .fill(segments[index].color)
-                            .frame(width: 8, height: 8)
-                        Text(segments[index].label)
-                            .font(.caption)
+            .frame(height: 200)
+            .chartLegend(position: .bottom) {
+                HStack(spacing: 16) {
+                    ForEach(data) { item in
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(item.color)
+                                .frame(width: 8, height: 8)
+                            Text(item.label)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
                     }
                 }
             }
@@ -206,3 +241,77 @@ struct CircularChartView: View {
         .cornerRadius(10)
     }
 }
+
+// Add PieSlice shape
+struct PieSlice: Shape {
+    let startAngle: Angle
+    let endAngle: Angle
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let radius = min(rect.width, rect.height) / 2
+        
+        path.move(to: center)
+        path.addArc(center: center,
+                   radius: radius,
+                   startAngle: startAngle,
+                   endAngle: endAngle,
+                   clockwise: false)
+        path.closeSubpath()
+        
+        return path
+    }
+}
+
+// Add this at the bottom of the file
+#Preview {
+    let store = ExerciseDataStore.shared
+    
+    // Add some test data if empty
+    if store.sessions.isEmpty {
+        // Add 30-second sessions
+        store.addSession(ExerciseSession(
+            date: Date().addingTimeInterval(-86400), // Yesterday
+            duration: 30,
+            score: 8,
+            totalTargets: 10,
+            movements: [
+                Movement(direction: .up, responseTime: 1.0, timestamp: Date()),
+                Movement(direction: .down, responseTime: 1.2, timestamp: Date())
+            ],
+            dizzinessLevel: 5
+        ))
+        
+        // Add 60-second sessions
+        store.addSession(ExerciseSession(
+            date: Date(),
+            duration: 60,
+            score: 15,
+            totalTargets: 20,
+            movements: [
+                Movement(direction: .left, responseTime: 0.8, timestamp: Date()),
+                Movement(direction: .right, responseTime: 1.0, timestamp: Date()),
+                Movement(direction: .up, responseTime: 0.9, timestamp: Date())
+            ],
+            dizzinessLevel: 3
+        ))
+        
+        // Add mixed movement session
+        store.addSession(ExerciseSession(
+            date: Date().addingTimeInterval(-43200), // 12 hours ago
+            duration: 45,
+            score: 12,
+            totalTargets: 15,
+            movements: [
+                Movement(direction: .up, responseTime: 1.1, timestamp: Date()),
+                Movement(direction: .left, responseTime: 0.9, timestamp: Date())
+            ],
+            dizzinessLevel: 4
+        ))
+    }
+    
+    return DashboardView()
+}
+
+

@@ -4,14 +4,12 @@ import Charts
 struct DailyAccuracyChart: View {
     let sessions: [ExerciseSession]
     
-    // Add computed property for date range
     private var dateRange: ClosedRange<Date> {
         let sortedDates = sessions.map(\.date).sorted()
         if let firstDate = sortedDates.first,
            let lastDate = sortedDates.last {
             return firstDate...lastDate
         }
-        // Fallback to today if no dates available
         return Date()...Date()
     }
     
@@ -29,7 +27,6 @@ struct DailyAccuracyChart: View {
         .padding(.horizontal)
     }
     
-    // MARK: - Chart View
     private var chartView: some View {
         Chart {
             ForEach(sessions) { session in
@@ -40,17 +37,17 @@ struct DailyAccuracyChart: View {
                 .foregroundStyle(Color.blue.gradient)
                 .lineStyle(StrokeStyle(lineWidth: 2))
                 .symbol(.circle)
-                .symbolSize(10)
+                .symbolSize(8)
             }
         }
         .chartXScale(domain: dateRange)
         .chartPlotStyle { plotArea in
             plotArea
-                .background(Color.black.opacity(0.1))
+                .background(Color.white)
                 .border(Color.gray.opacity(0.2), width: 1)
         }
         .chartXAxis {
-            AxisMarks(values: .stride(by: .day, count: 1)) { value in
+            AxisMarks(values: .stride(by: .day, count: 2)) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
                     .foregroundStyle(Color.gray.opacity(0.3))
                 AxisTick(stroke: StrokeStyle(lineWidth: 0.5))
@@ -71,7 +68,6 @@ struct DailyAccuracyChart: View {
         .padding(.vertical)
     }
     
-    // MARK: - Legend View
     private var legendView: some View {
         HStack {
             Circle()
@@ -83,7 +79,6 @@ struct DailyAccuracyChart: View {
     }
 }
 
-// MARK: - Preview
 #Preview {
     DailyAccuracyChart(sessions: [
         ExerciseSession(

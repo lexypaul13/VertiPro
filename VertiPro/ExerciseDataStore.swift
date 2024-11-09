@@ -12,13 +12,22 @@ import ARKit
 class ExerciseDataStore: ObservableObject {
     static let shared = ExerciseDataStore()
     @Published var sessions: [ExerciseSession] = []
+    private let sessionsKey = "exerciseSessions"
     
     private init() {
-        print("ExerciseDataStore initialized")
-        // Force clear and reload data
-        UserDefaults.standard.removeObject(forKey: "exerciseSessions")
+        loadSessions()
+        
+        if sessions.isEmpty {
+            loadHistoricalData()
+            saveSessions()
+        }
+    }
+    
+    func clearAndReloadData() {
+        sessions = []
         loadHistoricalData()
-        print("Initial load complete - Sessions count: \(sessions.count)")
+        saveSessions()
+        print("Data cleared and reloaded")
     }
     
     private func loadHistoricalData() {
@@ -31,60 +40,51 @@ class ExerciseDataStore: ObservableObject {
         var sampleSessions: [ExerciseSession] = []
         var currentDate = startDate
         
-        // Create a pattern of improvement over time
         while currentDate <= now {
-            // Calculate progress factor (0.0 to 1.0) based on time elapsed
-            let daysSinceStart = calendar.dateComponents([.day], from: startDate, to: currentDate).day ?? 0
-            let progressFactor = min(1.0, Double(daysSinceStart) / (120.0)) // 120 days = 4 months
+            // 1-2 sessions per day for smoother data
+            let sessionsToday = Int.random(in: 1...2)
             
-            // More sessions on weekdays, fewer on weekends
-            let weekday = calendar.component(.weekday, from: currentDate)
-            let isWeekend = weekday == 1 || weekday == 7
-            let sessionsToday = isWeekend ? 1 : Int.random(in: 2...3)
-            
-            // Create sessions for the day
-            for sessionNum in 0..<sessionsToday {
-                // Morning (8-10), Afternoon (12-2), Evening (5-7)
-                let timeSlots = [(8,10), (12,14), (17,19)]
-                let (startHour, endHour) = timeSlots[sessionNum % timeSlots.count]
+            for _ in 0..<sessionsToday {
+                // Alternate between 30s and 60s sessions
+                let duration = Bool.random() ? 30 : 60
                 
-                guard let sessionDate = calendar.date(
-                    bySettingHour: Int.random(in: startHour...endHour),
-                    minute: Int.random(in: 0...59),
-                    second: 0,
-                    of: currentDate
-                ) else { continue }
+                // Create movements based on random exercise type
+                let exerciseType = Int.random(in: 0...2) // 0: All, 1: Up/Down, 2: Left/Right
+                var movements: [Movement] = []
                 
-                // Create movements with improving response times
-                let baseResponseTime = max(0.5, 2.0 - (1.5 * progressFactor))
-                let movements = (0..<Int.random(in: 15...25)).map { _ in
-                    Movement(
-                        direction: [Direction.up, .down, .left, .right].randomElement() ?? .up,
-                        responseTime: Double.random(in: baseResponseTime...(baseResponseTime + 0.5)),
-                        timestamp: sessionDate
-                    )
+                let movementCount = duration == 30 ? Int.random(in: 8...12) : Int.random(in: 16...24)
+                
+                for _ in 0..<movementCount {
+                    let direction: Direction
+                    switch exerciseType {
+                    case 0: // All movements
+                        direction = [Direction.up, .down, .left, .right].randomElement()!
+                    case 1: // Up/Down only
+                        direction = Bool.random() ? .up : .down
+                    case 2: // Left/Right only
+                        direction = Bool.random() ? .left : .right
+                    default:
+                        direction = .up
+                    }
+                    
+                    movements.append(Movement(
+                        direction: direction,
+                        responseTime: Double.random(in: 0.7...1.3),
+                        timestamp: currentDate
+                    ))
                 }
                 
-                // Accuracy improves over time with some variation
-                let baseAccuracy = 60.0 + (25.0 * progressFactor)
-                let dailyVariation = Double.random(in: -5.0...5.0)
-                let sessionVariation = Double.random(in: -3.0...3.0)
-                let accuracy = min(95.0, baseAccuracy + dailyVariation + sessionVariation)
-                
+                // Calculate score and accuracy
                 let totalTargets = movements.count
-                let score = Int((accuracy * Double(totalTargets)) / 100.0)
-                
-                // Dizziness level decreases over time
-                let baseDizziness = max(1.0, 8.0 - (5.0 * progressFactor))
-                let dizziness = max(1.0, min(10.0, baseDizziness + Double.random(in: -1.0...1.0)))
+                let score = Int.random(in: (totalTargets * 2 / 3)...totalTargets)
                 
                 let session = ExerciseSession(
-                    date: sessionDate,
-                    duration: Int.random(in: 180...300), // 3-5 minutes
+                    date: currentDate,
+                    duration: duration,
                     score: score,
                     totalTargets: totalTargets,
                     movements: movements,
-                    dizzinessLevel: dizziness
+                    dizzinessLevel: Double.random(in: 2...8)
                 )
                 
                 sampleSessions.append(session)
@@ -103,26 +103,41 @@ class ExerciseDataStore: ObservableObject {
     func addSession(_ session: ExerciseSession) {
         sessions.append(session)
         saveSessions()
+        print("Session added. Total sessions: \(sessions.count)")
     }
     
     private func saveSessions() {
-        if let encoded = try? JSONEncoder().encode(sessions) {
-            UserDefaults.standard.set(encoded, forKey: "exerciseSessions")
+        do {
+            let encoded = try JSONEncoder().encode(sessions)
+            UserDefaults.standard.set(encoded, forKey: sessionsKey)
+            print("Sessions saved successfully")
+        } catch {
+            print("Error saving sessions: \(error)")
         }
     }
     
     private func loadSessions() {
-        if let data = UserDefaults.standard.data(forKey: "exerciseSessions"),
-           let decoded = try? JSONDecoder().decode([ExerciseSession].self, from: data) {
-            sessions = decoded
+        if let data = UserDefaults.standard.data(forKey: sessionsKey) {
+            do {
+                sessions = try JSONDecoder().decode([ExerciseSession].self, from: data)
+                print("Loaded \(sessions.count) sessions")
+            } catch {
+                print("Error loading sessions: \(error)")
+                sessions = []
+            }
         }
     }
     
-    func clearAndReloadData() {
-        print("Clearing and reloading data...")
-        sessions = []
-        loadHistoricalData()
-        print("Reload complete - Sessions count: \(sessions.count)")
+    // Add data cleanup
+    func cleanupOldSessions(olderThan days: Int = 365) {
+        let calendar = Calendar.current
+        guard let cutoffDate = calendar.date(byAdding: .day, value: -days, to: Date()) else { return }
+        
+        let oldCount = sessions.count
+        sessions = sessions.filter { $0.date > cutoffDate }
+        saveSessions()
+        
+        print("Cleaned up \(oldCount - sessions.count) old sessions")
     }
 }
 

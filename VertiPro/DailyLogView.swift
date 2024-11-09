@@ -50,14 +50,14 @@ struct DailyLogView: View {
                     if !filteredData.isEmpty {
                         StatisticsSummaryView(sessions: filteredData)
                             .padding(.horizontal)
-                    }
-
-                    // Chart
-                    if filteredData.isEmpty {
+                    } else {
                         Text("No data available for selected period")
                             .foregroundColor(.gray)
                             .padding()
-                    } else {
+                    }
+
+                    // Chart
+                    if !filteredData.isEmpty {
                         DailyAccuracyChart(sessions: filteredData)
                     }
                 }

@@ -7,6 +7,7 @@
 
 // ExerciseSetupView.swift
 import SwiftUI
+import ARKit
 
 struct ExerciseSetupView: View {
     @Environment(\.dismiss) private var dismiss
@@ -16,6 +17,9 @@ struct ExerciseSetupView: View {
     @State private var duration = 30
     @State private var showingCountdown = false
     @State private var showExerciseView = false
+    @State private var isNavigating = false
+    @State private var showAlert = false
+    @State private var alertMessage = ""
     
     var body: some View {
         VStack(spacing: 30) {
@@ -43,8 +47,10 @@ struct ExerciseSetupView: View {
                     ForEach(1...10, id: \.self) { number in
                         Text("\(number)")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(number == Int(dizzinessLevel) ? .primary : .gray)
                             .frame(maxWidth: .infinity)
+                            .scaleEffect(number == Int(dizzinessLevel) ? 1.2 : 1.0)
+                            .animation(.spring(response: 0.3), value: dizzinessLevel)
                     }
                 }
                 
@@ -60,18 +66,15 @@ struct ExerciseSetupView: View {
                     .fontWeight(.semibold)
                 
                 HStack {
-                    Text("Xt. Slow")
-                    Spacer()
-                    Text("Slow")
-                    Spacer()
-                    Text("Medium")
-                    Spacer()
-                    Text("Fast")
-                    Spacer()
-                    Text("Xt. Fast")
+                    ForEach(["Xt. Slow", "Slow", "Medium", "Fast", "Xt. Fast"], id: \.self) { label in
+                        Text(label)
+                            .font(.caption)
+                            .foregroundColor(speedLabel == label ? .primary : .gray)
+                            .scaleEffect(speedLabel == label ? 1.2 : 1.0)
+                            .animation(.spring(response: 0.3), value: speed)
+                            .frame(maxWidth: .infinity)
+                    }
                 }
-                .font(.caption)
-                .foregroundColor(.gray)
                 
                 Slider(value: $speed, in: 0...4, step: 1)
                     .tint(.blue)
@@ -110,7 +113,7 @@ struct ExerciseSetupView: View {
             Spacer()
             
             // Start Button
-            Button(action: { showingCountdown = true }) {
+            Button(action: { startExercise() }) {
                 Text("Ok")
                     .font(.title3)
                     .fontWeight(.semibold)
@@ -120,41 +123,84 @@ struct ExerciseSetupView: View {
             }
             .padding(.bottom)
         }
-        .navigationBarHidden(true)
-        // First show countdown
+        .navigationBarBackButtonHidden(isNavigating)
         .fullScreenCover(isPresented: $showingCountdown) {
             CountdownView(
                 headMovement: headMovement,
                 isCountdownComplete: $showExerciseView,
-                onDismiss: {
-                    showingCountdown = false
-                    showExerciseView = false
-                }
+                onDismiss: handleDismiss
             )
-            .onChange(of: showExerciseView) { newValue in
-                if newValue {
-                    showingCountdown = false  // Dismiss countdown when exercise starts
-                }
-            }
         }
-        // Then show exercise
         .fullScreenCover(isPresented: $showExerciseView) {
             ExerciseView(
                 dizzinessLevel: dizzinessLevel,
                 speed: speed,
                 headMovement: headMovement,
                 duration: duration,
-                onDismiss: {
-                    showingCountdown = false
-                    showExerciseView = false
-                }
+                onDismiss: handleDismiss
             )
+        }
+        .alert("Exercise Setup", isPresented: $showAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
+        .onAppear {
+            checkDeviceCapabilities()
+        }
+    }
+    
+    private func handleDismiss() {
+        isNavigating = false
+        showingCountdown = false
+        showExerciseView = false
+    }
+    
+    private func checkDeviceCapabilities() {
+        if !ARFaceTrackingConfiguration.isSupported {
+            alertMessage = "This device doesn't support face tracking."
+            showAlert = true
+        }
+        
+        // Check camera permissions
+        AVCaptureDevice.requestAccess(for: .video) { granted in
+            if !granted {
+                DispatchQueue.main.async {
+                    alertMessage = "Camera access is required for exercises."
+                    showAlert = true
+                }
+            }
+        }
+    }
+    
+    private func startExercise() {
+        isNavigating = true
+        showingCountdown = true
+    }
+    
+    private var speedLabel: String {
+        switch Int(speed) {
+        case 0: return "Xt. Slow"
+        case 1: return "Slow"
+        case 2: return "Medium"
+        case 3: return "Fast"
+        case 4: return "Xt. Fast"
+        default: return ""
         }
     }
     
     private var dizzinessGradient: LinearGradient {
         LinearGradient(
-            colors: [.green, .yellow, .orange, .red],
+            colors: [
+                .green,
+                .green,
+                .yellow,
+                .yellow,
+                .orange,
+                .orange,
+                .red,
+                .red
+            ],
             startPoint: .leading,
             endPoint: .trailing
         )

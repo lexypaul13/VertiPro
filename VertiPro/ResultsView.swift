@@ -13,41 +13,143 @@ struct ResultsView: View {
     let session: ExerciseSession
     @Environment(\.dismiss) private var dismiss
     @StateObject private var dataStore = ExerciseDataStore.shared
-
+    
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 0) {
+            // Header
             Text("Exercise Summary")
-                .font(.largeTitle)
-                .bold()
-
-            VStack(alignment: .leading, spacing: 15) {
-                Text("Date: \(session.date.formatted())")
-                Text("Duration: \(session.duration) seconds")
-                Text("Score: \(session.score)")
-                Text("Head Turns Per Minute: \(String(format: "%.1f", session.headTurnsPerMinute))")
-                Text("Accuracy: \(String(format: "%.1f", session.accuracy))%")
-                Text("Dizziness Level: \(String(format: "%.1f", session.dizzinessLevel))")
+                .font(.system(size: 34, weight: .bold))
+                .padding(.top, 50)
+                .padding(.bottom, 30)
+            
+            // Stats Cards Grid
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 15),
+                GridItem(.flexible(), spacing: 15)
+            ], spacing: 15) {
+                // Date Card
+                StatCard(
+                    title: "Date",
+                    value: session.date.formatted(date: .abbreviated, time: .shortened),
+                    icon: "calendar",
+                    color: .blue
+                )
+                
+                // Duration Card
+                StatCard(
+                    title: "Duration",
+                    value: "\(session.duration)s",
+                    icon: "clock",
+                    color: .green
+                )
+                
+                // Score Card
+                StatCard(
+                    title: "Score",
+                    value: "\(session.score)/\(session.totalTargets)",
+                    icon: "target",
+                    color: .orange
+                )
+                
+                // Head Turns Card
+                StatCard(
+                    title: "Turns/Min",
+                    value: String(format: "%.1f", session.headTurnsPerMinute),
+                    icon: "arrow.left.arrow.right",
+                    color: .purple
+                )
+                
+                // Accuracy Card
+                StatCard(
+                    title: "Accuracy",
+                    value: "\(Int(session.accuracy))%",
+                    icon: "percent",
+                    color: .pink
+                )
+                
+                // Dizziness Card
+                StatCard(
+                    title: "Dizziness",
+                    value: String(format: "%.1f", session.dizzinessLevel),
+                    icon: "waveform.path",
+                    color: .red
+                )
             }
-            .font(.title3)
-
-            Text("Don't give up! Practice makes perfect.")
-                .font(.headline)
-                .padding(.top)
-
-            Button("Done") {
-                // Save the session to ExerciseDataStore
+            .padding(.horizontal, 20)
+            
+            Spacer()
+            
+            // Motivational Message
+            VStack(spacing: 8) {
+                Image(systemName: "star.fill")
+                    .font(.title)
+                    .foregroundColor(.yellow)
+                    .padding(.bottom, 4)
+                
+                Text("Don't give up!")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                
+                Text("Practice makes perfect.")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+            .padding(.bottom, 30)
+            
+            // Done Button
+            Button {
                 dataStore.addSession(session)
                 dismiss()
+            } label: {
+                Text("Done")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.blue)
+                    .cornerRadius(15)
             }
-            .font(.title2)
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-            .padding(.horizontal)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 30)
         }
-        .padding()
+    }
+}
+
+// Stat Card Component
+struct StatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        VStack(alignment: .center, spacing: 8) {
+            // Icon Circle
+            Circle()
+                .fill(color.opacity(0.1))
+                .frame(width: 40, height: 40)
+                .overlay(
+                    Image(systemName: icon)
+                        .font(.system(size: 16))
+                        .foregroundColor(color)
+                )
+            
+            // Title
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            // Value
+            Text(value)
+                .font(.system(size: 20, weight: .semibold))
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
     }
 }
 
@@ -56,7 +158,7 @@ struct ResultsView: View {
         Movement(direction: .left, responseTime: 1.2, timestamp: Date()),
         Movement(direction: .right, responseTime: 1.0, timestamp: Date())
     ]
-
+    
     let sampleSession = ExerciseSession(
         date: Date(),
         duration: 60,
@@ -65,7 +167,7 @@ struct ResultsView: View {
         movements: sampleMovements,
         dizzinessLevel: 5
     )
-
-    ResultsView(session: sampleSession)
+    
+    return ResultsView(session: sampleSession)
 }
 
