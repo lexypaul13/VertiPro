@@ -127,6 +127,7 @@ struct CountdownView: View {
                 // Delay before starting exercise
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     isCountdownComplete = true
+                    dismiss()
                 }
             }
         }

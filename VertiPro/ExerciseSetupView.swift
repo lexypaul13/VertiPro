@@ -128,7 +128,7 @@ struct ExerciseSetupView: View {
             CountdownView(
                 headMovement: headMovement,
                 isCountdownComplete: $showExerciseView,
-                onDismiss: handleDismiss
+                onDismiss: { handleDismiss(shouldResetExerciseView: false) }
             )
         }
         .fullScreenCover(isPresented: $showExerciseView) {
@@ -137,7 +137,7 @@ struct ExerciseSetupView: View {
                 speed: speed,
                 headMovement: headMovement,
                 duration: duration,
-                onDismiss: handleDismiss
+                onDismiss: { handleDismiss() }
             )
         }
         .alert("Exercise Setup", isPresented: $showAlert) {
@@ -150,11 +150,14 @@ struct ExerciseSetupView: View {
         }
     }
     
-    private func handleDismiss() {
+    private func handleDismiss(shouldResetExerciseView: Bool = true) {
         isNavigating = false
         showingCountdown = false
-        showExerciseView = false
+        if shouldResetExerciseView {
+            showExerciseView = false
+        }
     }
+
     
     private func checkDeviceCapabilities() {
         if !ARFaceTrackingConfiguration.isSupported {
