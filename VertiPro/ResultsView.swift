@@ -11,60 +11,43 @@ import SwiftUI
 
 struct ResultsView: View {
     let session: ExerciseSession
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var dataStore = ExerciseDataStore.shared
 
     var body: some View {
         VStack(spacing: 20) {
             Text("Exercise Summary")
                 .font(.largeTitle)
-                .fontWeight(.bold)
+                .bold()
 
-            // Metrics
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Date: \(session.date.formatted(date: .abbreviated, time: .shortened))")
+            VStack(alignment: .leading, spacing: 15) {
+                Text("Date: \(session.date.formatted())")
                 Text("Duration: \(session.duration) seconds")
                 Text("Score: \(session.score)")
                 Text("Head Turns Per Minute: \(String(format: "%.1f", session.headTurnsPerMinute))")
                 Text("Accuracy: \(String(format: "%.1f", session.accuracy))%")
-                Text("Dizziness Level: \(session.dizzinessLevel)")
+                Text("Dizziness Level: \(String(format: "%.1f", session.dizzinessLevel))")
+            }
+            .font(.title3)
+
+            Text("Don't give up! Practice makes perfect.")
+                .font(.headline)
+                .padding(.top)
+
+            Button("Done") {
+                // Save the session to ExerciseDataStore
+                dataStore.addSession(session)
+                dismiss()
             }
             .font(.title2)
             .padding()
-
-            // Encouraging Feedback
-            Text(feedbackMessage)
-                .font(.title3)
-                .multilineTextAlignment(.center)
-                .padding()
-
-            // Done Button
-            Button(action: {
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Text("Done")
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue) // Use a color available in your project
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-            }
+            .frame(maxWidth: .infinity)
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(10)
             .padding(.horizontal)
-
-            Spacer()
         }
         .padding()
-        .navigationBarTitle("Results", displayMode: .inline)
-    }
-
-    var feedbackMessage: String {
-        if session.accuracy >= 90 {
-            return "Excellent job! Keep up the great work!"
-        } else if session.accuracy >= 75 {
-            return "Good effort! You're improving!"
-        } else {
-            return "Don't give up! Practice makes perfect."
-        }
     }
 }
 

@@ -27,12 +27,19 @@ struct MainTabView: View {
                 }
                 .tag(1)
             
+            ExerciseSummaryView()
+                .tabItem {
+                    Image(systemName: "list.bullet.clipboard")
+                    Text("History")
+                }
+                .tag(2)
+            
             SettingsView()
                 .tabItem {
                     Image(systemName: "gearshape")
                     Text("Settings")
                 }
-                .tag(2)
+                .tag(3)
         }
         .toolbar(.hidden, for: .tabBar)  // This will hide the tab bar when needed
     }

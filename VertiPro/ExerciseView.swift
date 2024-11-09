@@ -6,6 +6,7 @@ struct ExerciseView: View {
     let speed: Double
     let headMovement: String
     let duration: Int
+    let onDismiss: () -> Void
     
     // State Management
     @StateObject private var headTracker = HeadTrackingManager()
@@ -21,11 +22,12 @@ struct ExerciseView: View {
     @State private var currentTargetDirection: Direction = .up
     @State private var directionSequence: DirectionSequence?
     
-    init(dizzinessLevel: Double, speed: Double, headMovement: String, duration: Int) {
+    init(dizzinessLevel: Double, speed: Double, headMovement: String, duration: Int, onDismiss: @escaping () -> Void) {
         self.dizzinessLevel = dizzinessLevel
         self.speed = speed
         self.headMovement = headMovement
         self.duration = duration
+        self.onDismiss = onDismiss
         _timerValue = State(initialValue: duration)
     }
     
@@ -121,6 +123,14 @@ struct ExerciseView: View {
                             headTracker.startTracking()
                         }
                     }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Exit") {
+                    onDismiss()
+                    dismiss()
+                }
             }
         }
     }
