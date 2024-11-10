@@ -23,17 +23,6 @@ struct ExerciseSetupView: View {
     
     var body: some View {
         VStack(spacing: 30) {
-            // Close Button
-            HStack {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "xmark")
-                        .font(.title2)
-                        .foregroundColor(.gray)
-                }
-                Spacer()
-            }
-            .padding(.horizontal)
-            
             // Title
             Text("How dizzy you are feeling?")
                 .font(.title2)
@@ -136,7 +125,7 @@ struct ExerciseSetupView: View {
                 .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 40) // Adjusted to sit above tab bar
+            .padding(.bottom, 80) // Adjusted to sit above tab bar
             .navigationBarBackButtonHidden(isNavigating)
             .fullScreenCover(isPresented: $showingCountdown) {
                 CountdownView(
