@@ -113,40 +113,55 @@ struct ExerciseSetupView: View {
             Spacer()
             
             // Start Button
-            Button(action: { startExercise() }) {
-                Text("Ok")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                    .frame(width: 60, height: 60)
-                    .background(Circle().stroke(Color.gray, lineWidth: 1))
+            Button(action: {
+                showingCountdown = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Start Exercise")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    LinearGradient(
+                        colors: [Color.blue, Color.blue.opacity(0.8)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .clipShape(Capsule())
+                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
             }
-            .padding(.bottom)
-        }
-        .navigationBarBackButtonHidden(isNavigating)
-        .fullScreenCover(isPresented: $showingCountdown) {
-            CountdownView(
-                headMovement: headMovement,
-                isCountdownComplete: $showExerciseView,
-                onDismiss: { handleDismiss(shouldResetExerciseView: false) }
-            )
-        }
-        .fullScreenCover(isPresented: $showExerciseView) {
-            ExerciseView(
-                dizzinessLevel: dizzinessLevel,
-                speed: speed,
-                headMovement: headMovement,
-                duration: duration,
-                onDismiss: { handleDismiss() }
-            )
-        }
-        .alert("Exercise Setup", isPresented: $showAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(alertMessage)
-        }
-        .onAppear {
-            checkDeviceCapabilities()
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40) // Adjusted to sit above tab bar
+            .navigationBarBackButtonHidden(isNavigating)
+            .fullScreenCover(isPresented: $showingCountdown) {
+                CountdownView(
+                    headMovement: headMovement,
+                    isCountdownComplete: $showExerciseView,
+                    onDismiss: { handleDismiss(shouldResetExerciseView: false) }
+                )
+            }
+            .fullScreenCover(isPresented: $showExerciseView) {
+                ExerciseView(
+                    dizzinessLevel: dizzinessLevel,
+                    speed: speed,
+                    headMovement: headMovement,
+                    duration: duration,
+                    onDismiss: { handleDismiss() }
+                )
+            }
+            .alert("Exercise Setup", isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(alertMessage)
+            }
+            .onAppear {
+                checkDeviceCapabilities()
+            }
         }
     }
     

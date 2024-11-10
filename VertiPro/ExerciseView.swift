@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ExerciseView: View {
-    // Parameters passed from ExerciseSetupView
+    // Keep existing parameters and state
     let dizzinessLevel: Double
     let speed: Double
     let headMovement: String
@@ -37,104 +37,184 @@ struct ExerciseView: View {
             ARViewContainer(headTracker: headTracker)
                 .edgesIgnoringSafeArea(.all)
             
-            // UI Overlay
+            // Dark overlay
+            Color.black.opacity(0.4)
+                .edgesIgnoringSafeArea(.all)
+            
+            // Main UI Content
             VStack {
-                // Back button
-                HStack {
-                    Button(action: {
-                        if !isExerciseActive {
+                if !isExerciseActive {
+                    // Back button when not active
+                    HStack {
+                        Button(action: {
+                            onDismiss()
                             dismiss()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Back")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.black.opacity(0.3))
+                            .cornerRadius(8)
                         }
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .foregroundColor(.white)
-                        .padding(.leading)
+                        Spacer()
                     }
-                    .opacity(isExerciseActive ? 0 : 1)
-                    
-                    Spacer()
+                    .padding(.top, 8)
+                    .padding(.horizontal, 16)
                 }
-                .padding(.top, 10)
                 
-                Text("Target Direction: \(currentTargetDirection.rawValue)")
-                    .foregroundColor(.white)
-                    .font(.system(size: 24))
+                // Status Bar
+                HStack(spacing: 40) {
+                    StatusItem(icon: "clock.fill", title: "Time", value: formatTime(timerValue))
+                    StatusItem(icon: "star.fill", title: "Score", value: "\(score)")
+                    StatusItem(icon: "target", title: "Targets", value: "\(totalTargets)")
+                }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 24)
+                .background(.ultraThinMaterial.opacity(0.7))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
                 
                 Spacer()
                 
-                // Arrow
-                ArrowView(direction: currentTargetDirection)
-                    .frame(width: 60, height: 60)
+                // Direction Circle
+                ZStack {
+                    // Dashed circle
+                    Circle()
+                        .stroke(
+                            style: StrokeStyle(
+                                lineWidth: 3,
+                                dash: [10, 10]
+                            )
+                        )
+                        .foregroundColor(
+                            currentTargetDirection == headTracker.currentDirection ? .green : .white
+                        )
+                        .frame(width: 200, height: 200)
+                    
+                    // Direction indicator
+                    Circle()
+                        .fill(currentTargetDirection == headTracker.currentDirection ? Color.green : Color.white)
+                        .frame(width: 60, height: 60)
+                        .overlay(
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 30, weight: .bold))
+                                .foregroundColor(.black)
+                                .rotationEffect(getRotationAngle(for: currentTargetDirection))
+                        )
+                }
                 
                 Spacer()
-                
-                // Score and Timer
-                HStack {
-                    Text("Score: \(score)")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Text("Time: \(timerValue)s")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal)
                 
                 // Start/Stop Button
-                Button(action: {
-                    if isExerciseActive {
-                        stopExercise()
-                    } else {
-                        startExercise()
+                if !isExerciseActive {
+                    Button(action: startExercise) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Start Exercise")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.blue, Color.blue.opacity(0.8)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
                     }
-                }) {
-                    Text(isExerciseActive ? "Stop" : "Start")
-                        .foregroundColor(.blue)
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(8)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16) // Reduced bottom padding to sit above tab bar
+                } else {
+                    Button(action: stopExercise) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Stop Exercise")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.red, Color.red.opacity(0.8)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16) // Reduced bottom padding to sit above tab bar
                 }
-                .padding(.bottom, 20)
             }
         }
         .onAppear {
-            // Clean up any existing session and start fresh
             headTracker.stopTracking()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 headTracker.startTracking()
             }
         }
         .onDisappear {
-            // Ensure cleanup when view disappears
             headTracker.stopTracking()
         }
         .fullScreenCover(isPresented: $shouldNavigateToResults) {
             if let session = session {
                 ResultsView(session: session)
-                    .onDisappear {
-                        // Reset tracking when returning from results
-                        headTracker.stopTracking()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            headTracker.startTracking()
-                        }
-                    }
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Exit") {
-                    onDismiss()
-                    dismiss()
-                }
             }
         }
     }
     
+    private struct StatusItem: View {
+        let icon: String
+        let title: String
+        let value: String
+        
+        var body: some View {
+            VStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: icon)
+                        .foregroundColor(.blue)
+                    Text(title)
+                        .foregroundColor(.gray)
+                }
+                .font(.caption)
+                
+                Text(value)
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+    }
+    
+    // Keep existing helper functions and implementations
+    private func formatTime(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+    
+    private func getRotationAngle(for direction: Direction) -> Angle {
+        switch direction {
+        case .up: return .degrees(0)
+        case .right: return .degrees(90)
+        case .down: return .degrees(180)
+        case .left: return .degrees(270)
+        }
+    }
+    
+    // Keep existing exercise logic functions
     private func startExercise() {
         headTracker.stopTracking()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
