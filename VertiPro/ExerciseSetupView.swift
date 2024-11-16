@@ -138,7 +138,11 @@ struct ExerciseSetupView: View {
                 CountdownView(
                     headMovement: headMovement,
                     isCountdownComplete: $showExerciseView,
-                    onDismiss: { handleDismiss(shouldResetExerciseView: false) }
+                    onDismiss: { 
+                        showingCountdown = false
+                        showExerciseView = false
+                        isNavigating = false
+                    }
                 )
             }
             .fullScreenCover(isPresented: $showExerciseView) {
@@ -161,12 +165,10 @@ struct ExerciseSetupView: View {
         }
     }
     
-    private func handleDismiss(shouldResetExerciseView: Bool = true) {
+    private func handleDismiss() {
         isNavigating = false
         showingCountdown = false
-        if shouldResetExerciseView {
-            showExerciseView = false
-        }
+        showExerciseView = false
     }
 
     
