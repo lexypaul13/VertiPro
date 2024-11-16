@@ -21,6 +21,12 @@ struct ExerciseSetupView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     
+    private let durations = [
+        (seconds: 30, label: "30 Seconds"),
+        (seconds: 60, label: "1 Minute"),
+        (seconds: 120, label: "2 Minutes")
+    ]
+    
     var body: some View {
         VStack(spacing: 30) {
             // Title
@@ -92,8 +98,9 @@ struct ExerciseSetupView: View {
                     .fontWeight(.semibold)
                 
                 Picker("Duration", selection: $duration) {
-                    Text("30 Seconds").tag(30)
-                    Text("60 Seconds").tag(60)
+                    ForEach(durations, id: \.seconds) { duration in
+                        Text(duration.label).tag(duration.seconds)
+                    }
                 }
                 .pickerStyle(.segmented)
             }

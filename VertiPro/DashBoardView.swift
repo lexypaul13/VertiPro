@@ -59,6 +59,11 @@ struct DashboardView: View {
                                     label: "60s",
                                     value: Double(exerciseModeCounts.sixtySeconds),
                                     color: ChartData.colorScheme[1]
+                                ),
+                                ChartData(
+                                    label: "2min",
+                                    value: Double(exerciseModeCounts.twoMinutes),
+                                    color: ChartData.colorScheme[2]
                                 )
                             ]
                         )
@@ -115,11 +120,11 @@ struct DashboardView: View {
         return accuracies.isEmpty ? 0 : accuracies.reduce(0, +) / Double(accuracies.count)
     }
     
-    private var exerciseModeCounts: (thirtySeconds: Int, sixtySeconds: Int) {
+    private var exerciseModeCounts: (thirtySeconds: Int, sixtySeconds: Int, twoMinutes: Int) {
         let thirtySeconds = dataStore.sessions.filter { $0.duration == 30 }.count
         let sixtySeconds = dataStore.sessions.filter { $0.duration == 60 }.count
-        print("Exercise Mode - Raw counts: 30s: \(thirtySeconds), 60s: \(sixtySeconds)")
-        return (thirtySeconds, sixtySeconds)
+        let twoMinutes = dataStore.sessions.filter { $0.duration == 120 }.count
+        return (thirtySeconds, sixtySeconds, twoMinutes)
     }
     
     private var headMovementCounts: (all: Int, upDown: Int, leftRight: Int) {
