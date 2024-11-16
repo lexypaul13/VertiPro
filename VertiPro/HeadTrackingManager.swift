@@ -2,15 +2,16 @@ import ARKit
 import simd
 
 class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
-    @Published var currentDirection: Direction = .up
+    @Published private(set) var currentDirection: Direction = .up
+    @Published private(set) var isTracking = false
+    
     var onDirectionChanged: ((Direction) -> Void)?
     
-    let session: ARSession = ARSession()
-    
+    private var lastDirection: Direction?
+    private let movementThreshold: Float = 12.0
     private var lastUpdateTime = Date()
-    private let minimumTimeBetweenUpdates = 0.3
-    private let angleThreshold: Float = 5.0
-    private var isTracking = false
+    private let minimumTimeBetweenUpdates: TimeInterval = 0.3
+    let session = ARSession()
     
     override init() {
         super.init()
@@ -20,40 +21,24 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
     func startTracking() {
         guard !isTracking else { return }
         guard ARFaceTrackingConfiguration.isSupported else {
-            print("Face tracking is not supported on this device")
+            print("Face tracking not supported")
             return
         }
         
-        isTracking = true
-        
-        // Configure and start AR session
-        let configuration = ARFaceTrackingConfiguration()
-        configuration.isLightEstimationEnabled = true
-        
-        // Run session with configuration
-        session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+        DispatchQueue.main.async {
+            self.isTracking = true
+            self.lastDirection = nil
+            
+            let configuration = ARFaceTrackingConfiguration()
+            self.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+        }
     }
     
     func stopTracking() {
-        guard isTracking else { return }
-        isTracking = false
-        session.pause()
-    }
-    
-    // ARSessionDelegate methods
-    func session(_ session: ARSession, didFailWithError error: Error) {
-        print("AR Session failed: \(error.localizedDescription)")
-        isTracking = false
-    }
-    
-    func sessionWasInterrupted(_ session: ARSession) {
-        print("AR Session was interrupted")
-        isTracking = false
-    }
-    
-    func sessionInterruptionEnded(_ session: ARSession) {
-        print("AR Session interruption ended")
-        startTracking() // Restart tracking when interruption ends
+        DispatchQueue.main.async {
+            self.isTracking = false
+            self.session.pause()
+        }
     }
     
     func session(_ session: ARSession, didUpdate anchors: [ARAnchor]) {
@@ -63,42 +48,40 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
             return
         }
         
-        // Get euler angles directly from face anchor
         let pitch = faceAnchor.transform.eulerAngles.x
         let yaw = faceAnchor.transform.eulerAngles.y
         
-        // Convert to degrees
         let pitchDegrees = pitch * 180 / .pi
         let yawDegrees = yaw * 180 / .pi
         
-        // Print angles for debugging
         print("Pitch: \(pitchDegrees), Yaw: \(yawDegrees)")
         
-        // Determine new direction based on head movement
-        var newDirection = currentDirection
+        let newDirection: Direction?
         
-        // Check vertical movement first with more sensitive thresholds
-        if abs(pitchDegrees) > angleThreshold {
-            if pitchDegrees > angleThreshold {
+        if abs(pitchDegrees) > abs(yawDegrees) {
+            if pitchDegrees > movementThreshold {
                 newDirection = .down
-            } else if pitchDegrees < -angleThreshold {
+            } else if pitchDegrees < -movementThreshold {
                 newDirection = .up
+            } else {
+                newDirection = nil
             }
-        }
-        // Then check horizontal movement
-        else if abs(yawDegrees) > angleThreshold {
-            if yawDegrees > angleThreshold {
+        } else {
+            if yawDegrees > movementThreshold {
                 newDirection = .right
-            } else if yawDegrees < -angleThreshold {
+            } else if yawDegrees < -movementThreshold {
                 newDirection = .left
+            } else {
+                newDirection = nil
             }
         }
         
-        if newDirection != currentDirection {
+        if let direction = newDirection, direction != lastDirection {
+            print("Movement detected: \(direction)")
             DispatchQueue.main.async {
-                print("Direction changed to: \(newDirection)")
-                self.currentDirection = newDirection
-                self.onDirectionChanged?(newDirection)
+                self.currentDirection = direction
+                self.onDirectionChanged?(direction)
+                self.lastDirection = direction
                 self.lastUpdateTime = Date()
             }
         }

@@ -62,7 +62,7 @@ struct ResultsView: View {
                 // Accuracy Card
                 StatCard(
                     title: "Accuracy",
-                    value: "\(Int(session.accuracy))%",
+                    value: String(format: "%.0f%%", session.accuracy),
                     icon: "percent",
                     color: .pink
                 )

@@ -216,11 +216,6 @@ struct ExerciseView: View {
     
     // Keep existing exercise logic functions
     private func startExercise() {
-        headTracker.stopTracking()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            headTracker.startTracking()
-        }
-        
         isExerciseActive = true
         score = 0
         timerValue = duration
@@ -230,36 +225,39 @@ struct ExerciseView: View {
         
         directionSequence = DirectionSequence(headMovement: headMovement, speed: speed)
         
-        startDirectionTimer()
+        headTracker.startTracking()
         
-        headTracker.onDirectionChanged = { newDirection in
-            if newDirection == currentTargetDirection {
-                score += 1
+        headTracker.onDirectionChanged = { direction in
+            if direction == self.currentTargetDirection {
+                self.score += 1
                 let movement = Movement(
-                    direction: newDirection,
-                    responseTime: Date().timeIntervalSince(targetAppearanceTime),
+                    direction: direction,
+                    responseTime: Date().timeIntervalSince(self.targetAppearanceTime),
                     timestamp: Date()
                 )
-                sessionMovements.append(movement)
-                totalTargets += 1
+                self.sessionMovements.append(movement)
             }
         }
         
+        startDirectionTimer()
         startTimer()
     }
     
     private func stopExercise() {
         isExerciseActive = false
+        headTracker.stopTracking()
         
-        session = ExerciseSession(
+        let finalSession = ExerciseSession(
             date: Date(),
             duration: duration - timerValue,
             score: score,
-            totalTargets: totalTargets,
+            totalTargets: sessionMovements.count,
             movements: sessionMovements,
             dizzinessLevel: dizzinessLevel
         )
         
+        ExerciseDataStore.shared.addSession(finalSession)
+        session = finalSession
         shouldNavigateToResults = true
     }
     

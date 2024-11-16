@@ -108,7 +108,6 @@ struct DashboardView: View {
             }
             .navigationTitle("Dashboard")
             .onAppear {
-                // Force reload data when view appears
                 dataStore.clearAndReloadData()
             }
         }
@@ -170,6 +169,19 @@ struct ChartCard: View {
     var showPercentage: Bool = false
     var showValue: Bool = false
     
+    private var displayValue: String {
+        if value.isNaN || value.isInfinite {
+            return "0"
+        }
+        
+        if showPercentage {
+            return "\(Int(max(0, min(100, value))))%"
+        } else if showValue {
+            return "\(Int(max(0, value)))"
+        }
+        return ""
+    }
+    
     var body: some View {
         VStack {
             Text(title)
@@ -178,14 +190,14 @@ struct ChartCard: View {
             
             Chart {
                 SectorMark(
-                    angle: .value("Value", value),
+                    angle: .value("Value", value.isNaN || value.isInfinite ? 0 : value),
                     innerRadius: .ratio(0.6),
                     angularInset: 1
                 )
                 .foregroundStyle(color.gradient)
                 
                 SectorMark(
-                    angle: .value("Remaining", max(0, total - value)),
+                    angle: .value("Remaining", max(0, total - (value.isNaN || value.isInfinite ? 0 : value))),
                     innerRadius: .ratio(0.6),
                     angularInset: 1
                 )
@@ -193,12 +205,8 @@ struct ChartCard: View {
             }
             .frame(height: 120)
             
-            if showPercentage {
-                Text("\(Int(value))%")
-                    .font(.title2)
-                    .bold()
-            } else if showValue {
-                Text("\(Int(value))")
+            if showPercentage || showValue {
+                Text(displayValue)
                     .font(.title2)
                     .bold()
             }

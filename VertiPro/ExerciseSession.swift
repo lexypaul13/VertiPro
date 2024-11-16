@@ -25,8 +25,14 @@ struct ExerciseSession: Identifiable, Codable {
     }
 
     var accuracy: Double {
-        let accuracy = Double(score) / Double(totalTargets) * 100
-        return accuracy.isNaN ? 0 : accuracy
+        guard totalTargets > 0 else { return 0 }
+        let accuracyValue = (Double(score) / Double(totalTargets)) * 100
+        // Handle NaN and Infinite values
+        if accuracyValue.isNaN || accuracyValue.isInfinite {
+            return 0
+        }
+        // Ensure value is between 0 and 100
+        return max(0, min(100, accuracyValue))
     }
 }
 
