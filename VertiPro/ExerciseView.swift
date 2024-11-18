@@ -464,4 +464,16 @@ extension Color {
     }
 }
 
+struct PerformanceMetrics {
+    var currentSpeed: Double      // Movement speed
+    var rangeOfMotion: Double    // Movement range
+    var consistency: Double      // Movement consistency
+    var formQuality: MovementQuality
+    
+    // Clinical metrics
+    var movementPrecision: Double
+    var stabilityScore: Double
+    var recoveryTime: Double     // Time to return to center
+}
+
  

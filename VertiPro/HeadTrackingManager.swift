@@ -42,6 +42,19 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
     private let minimumTimeBetweenUpdates: TimeInterval = 0.3
     let session = ARSession()
     
+    // Add these properties for tracking
+    private var lastPitch: Double = 0.0
+    private var lastYaw: Double = 0.0
+    
+    // Add MovementMetrics struct
+    struct MovementMetrics {
+        var speed: Double          // Current movement speed
+        var precision: Double      // How precise the movement is
+        var stability: Double      // How stable the movement is
+        var returnTime: Double     // Time to return to center
+        var quality: MovementQuality
+    }
+    
     override init() {
         super.init()
         session.delegate = self
@@ -82,24 +95,20 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
         let pitchDegrees = pitch * 180 / .pi
         let yawDegrees = yaw * 180 / .pi
         
-        // Print angles for debugging
-        print("📐 Pitch: \(String(format: "%.1f", pitchDegrees))°, Yaw: \(String(format: "%.1f", yawDegrees))°")
+        // Calculate movement metrics
+        let metrics = calculateMovementMetrics(pitch: pitchDegrees, yaw: yawDegrees)
         
-        // Add this debug print
-        print("\n--- Movement Update ---")
-        print("Raw angles - Pitch: \(String(format: "%.1f", pitchDegrees))°, Yaw: \(String(format: "%.1f", yawDegrees))°")
+        // Update last values for next calculation
+        lastPitch = pitchDegrees
+        lastYaw = yawDegrees
+        lastUpdateTime = Date()
         
-        if abs(pitchDegrees) > abs(yawDegrees) {
-            print("Dominant axis: Pitch (Up/Down)")
-        } else {
-            print("Dominant axis: Yaw (Left/Right)")
-        }
-        
-        // First, validate the movement
+        // Update feedback with enhanced metrics
         let (feedback, accuracy) = validateMovement(
             pitch: pitchDegrees,
             yaw: yawDegrees,
-            targetDirection: currentDirection
+            targetDirection: currentDirection,
+            metrics: metrics
         )
         
         // Update feedback immediately
@@ -162,7 +171,7 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
         }
     }
     
-    func validateMovement(pitch: Double, yaw: Double, targetDirection: Direction) -> (MovementFeedback, Double) {
+    func validateMovement(pitch: Double, yaw: Double, targetDirection: Direction, metrics: MovementMetrics) -> (MovementFeedback, Double) {
         let (angle, isCorrectAxis) = getRelevantAngle(pitch: pitch, yaw: yaw, for: targetDirection)
         
         if !isCorrectAxis {
@@ -188,6 +197,85 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
             return (yaw, abs(yaw) > abs(pitch))
         }
     }
+    
+    private func calculateMovementMetrics(pitch: Double, yaw: Double) -> MovementMetrics {
+        // Calculate speed from position changes
+        let currentTime = Date()
+        let deltaTime = currentTime.timeIntervalSince(lastUpdateTime)
+        let speed = sqrt(pow(pitch - lastPitch, 2) + pow(yaw - lastYaw, 2)) / deltaTime
+        
+        // Calculate precision (how close to ideal path)
+        let precision = calculatePrecision(pitch: pitch, yaw: yaw)
+        
+        // Calculate stability (how smooth the movement is)
+        let stability = calculateStability(speed: speed)
+        
+        // Calculate return time to center
+        let returnTime = calculateReturnTime()
+        
+        // Determine overall quality
+        let quality = determineQuality(
+            speed: speed,
+            precision: precision,
+            stability: stability
+        )
+        
+        return MovementMetrics(
+            speed: speed,
+            precision: precision,
+            stability: stability,
+            returnTime: returnTime,
+            quality: quality
+        )
+    }
+    
+    private func calculatePrecision(pitch: Double, yaw: Double) -> Double {
+        // Calculate how close the movement is to the ideal path
+        let idealAngle = getIdealAngle(for: currentDirection)
+        let actualAngle = atan2(pitch, yaw) * 180 / .pi
+        let angleDifference = abs(idealAngle - actualAngle)
+        
+        // Return precision score (0-100)
+        return max(0, 100 - (angleDifference * 5))
+    }
+    
+    private func calculateStability(speed: Double) -> Double {
+        // Ideal speed ranges
+        let minIdealSpeed = 10.0
+        let maxIdealSpeed = 30.0
+        
+        if speed < minIdealSpeed {
+            return max(0, speed / minIdealSpeed * 100)
+        } else if speed > maxIdealSpeed {
+            return max(0, 100 - ((speed - maxIdealSpeed) / maxIdealSpeed * 100))
+        }
+        return 100.0
+    }
+    
+    private func calculateReturnTime() -> Double {
+        // Time since last movement
+        return Date().timeIntervalSince(lastUpdateTime)
+    }
+    
+    private func determineQuality(speed: Double, precision: Double, stability: Double) -> MovementQuality {
+        let overallScore = (speed + precision + stability) / 3
+        
+        switch overallScore {
+        case 90...100: return .excellent
+        case 70..<90: return .good
+        case 50..<70: return .needsWork
+        default: return .incorrect
+        }
+    }
+    
+    private func getIdealAngle(for direction: Direction) -> Double {
+        switch direction {
+        case .up: return 90
+        case .down: return -90
+        case .left: return 180
+        case .right: return 0
+        }
+    }
 }
 
 extension simd_float4x4 {
@@ -196,5 +284,21 @@ extension simd_float4x4 {
         let yaw = atan2(self[2][1], self[2][2])
         let roll = atan2(self[1][0], self[0][0])
         return SIMD3(pitch, yaw, roll)
+    }
+}
+
+enum MovementQuality {
+    case excellent   // Perfect form and timing
+    case good        // Good form, slight timing off
+    case needsWork   // Form needs improvement
+    case incorrect   // Wrong movement pattern
+    
+    var description: String {
+        switch self {
+        case .excellent: return "Perfect form!"
+        case .good: return "Good movement"
+        case .needsWork: return "Adjust movement"
+        case .incorrect: return "Incorrect pattern"
+        }
     }
 }
