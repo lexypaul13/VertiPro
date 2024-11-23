@@ -74,35 +74,38 @@ struct ExerciseSummaryRow: View {
     let session: ExerciseSession
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(session.date.formatted(date: .abbreviated, time: .shortened))
-                    .font(.headline)
-                Spacer()
-                AccuracyBadge(accuracy: session.accuracy)
-            }
-            
-            HStack(spacing: 16) {
-                StatisticView(
-                    icon: "clock",
-                    value: formatDuration(session.duration),
-                    label: "Duration"
-                )
+        NavigationLink(destination: ExerciseDetailView(session: session)) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(session.date.formatted(date: .abbreviated, time: .shortened))
+                        .font(.headline)
+                    Spacer()
+                    AccuracyBadge(accuracy: session.accuracy)
+                }
                 
-                StatisticView(
-                    icon: "figure.walk",
-                    value: String(format: "%.1f", session.headTurnsPerMinute),
-                    label: "Turns/min"
-                )
-                
-                StatisticView(
-                    icon: "waveform.path",
-                    value: String(format: "%.1f", session.dizzinessLevel),
-                    label: "Dizziness"
-                )
+                HStack(spacing: 16) {
+                    StatisticView(
+                        icon: "clock",
+                        value: formatDuration(session.duration),
+                        label: "Duration"
+                    )
+                    
+                    StatisticView(
+                        icon: "figure.walk",
+                        value: String(format: "%.1f", session.headTurnsPerMinute),
+                        label: "Turns/min"
+                    )
+                    
+                    StatisticView(
+                        icon: "waveform.path",
+                        value: String(format: "%.1f", session.dizzinessLevel),
+                        label: "Dizziness"
+                    )
+                }
             }
+            .padding(.vertical, 8)
         }
-        .padding(.vertical, 8)
+        .buttonStyle(PlainButtonStyle())
     }
     
     private func formatDuration(_ seconds: Int) -> String {

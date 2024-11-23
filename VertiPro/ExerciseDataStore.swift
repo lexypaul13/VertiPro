@@ -13,6 +13,22 @@ class ExerciseDataStore: ObservableObject {
     static let shared = ExerciseDataStore()
     @Published var sessions: [ExerciseSession] = []
     
+    var weeklyChange: Int {
+        let calendar = Calendar.current
+        let now = Date()
+        let oneWeekAgo = calendar.date(byAdding: .day, value: -7, to: now)!
+        
+        let thisWeekSessions = sessions.filter { 
+            calendar.isDate($0.date, inSameDayAs: now)
+        }.count
+        
+        let lastWeekSessions = sessions.filter { 
+            calendar.isDate($0.date, inSameDayAs: oneWeekAgo)
+        }.count
+        
+        return thisWeekSessions - lastWeekSessions
+    }
+    
     private init() {
         loadSessions()
         if sessions.isEmpty {
