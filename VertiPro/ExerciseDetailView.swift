@@ -206,30 +206,30 @@ struct ClinicalMetricCard: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 14, height: 14)
-                        .colorInvert()
+                        .foregroundStyle(colorScheme == .dark ? .white : color)
                 } else if icon == "arrow.triangle.2.circlepath" {
                     Image("Four Way Direction")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 14, height: 14)
-                        .colorInvert()
+                        .foregroundStyle(colorScheme == .dark ? .white : color)
                 } else {
                     Image(systemName: icon)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(colorScheme == .dark ? .white : color)
                 }
                 Text(title)
                     .font(.system(.caption, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(colorScheme == .dark ? .white : color)
             }
             
             Text(value)
                 .font(.system(.title2, design: .rounded, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(colorScheme == .dark ? .white : color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(color.opacity(0.1))
+        .background(color.opacity(colorScheme == .dark ? 0.2 : 0.1))
         .cornerRadius(12)
     }
 }

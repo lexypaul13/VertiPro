@@ -130,16 +130,16 @@ struct StatisticView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 20, height: 20)
-                        .colorInvert()
+                        .foregroundStyle(colorScheme == .dark ? .white : .primary)
                 } else if icon == "figure.walk" {
                     Image("Four Way Direction")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 20, height: 20)
-                        .colorInvert()
+                        .foregroundStyle(colorScheme == .dark ? .white : .primary)
                 } else {
                     Image(systemName: icon)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(colorScheme == .dark ? .white : .primary)
                 }
                 Text(value)
                     .bold()

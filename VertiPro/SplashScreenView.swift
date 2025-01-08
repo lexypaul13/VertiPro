@@ -5,10 +5,15 @@ struct SplashScreenView: View {
     @State private var opacity = 0.0
     @State private var scale = 0.7
     @State private var isAnimating = false
+    @State private var hasAcceptedDisclaimer = UserDefaults.standard.bool(forKey: "hasAcceptedDisclaimer")
     
     var body: some View {
         if isActive {
-            MainTabView()
+            if hasAcceptedDisclaimer {
+                MainTabView()
+            } else {
+                DisclaimerView(hasAcceptedDisclaimer: $hasAcceptedDisclaimer)
+            }
         } else {
             ZStack {
                 Color(hex: "53A9E7")
@@ -48,6 +53,9 @@ struct PulseAnimation: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scaleEffect(isAnimating ? 1.05 : 1.0)
-            .shadow(color: .white.opacity(0.2), radius: isAnimating ? 10 : 0)
     }
+}
+
+#Preview {
+    SplashScreenView()
 } 
