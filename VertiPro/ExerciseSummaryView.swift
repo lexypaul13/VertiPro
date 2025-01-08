@@ -123,8 +123,22 @@ struct StatisticView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Image(systemName: icon)
-                    .foregroundStyle(.secondary)
+                if icon == "waveform.path" {
+                    Image("Dizzy")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(.secondary)
+                } else if icon == "figure.walk" {
+                    Image("Four Way Direction")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Image(systemName: icon)
+                        .foregroundStyle(.secondary)
+                }
                 Text(value)
                     .bold()
             }

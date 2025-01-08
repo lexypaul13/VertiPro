@@ -199,9 +199,23 @@ struct ClinicalMetricCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(color)
+                if icon == "waveform.path.ecg" {
+                    Image("Dizzy")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 14, height: 14)
+                        .foregroundColor(color)
+                } else if icon == "arrow.triangle.2.circlepath" {
+                    Image("Four Way Direction")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 14, height: 14)
+                        .foregroundColor(color)
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(color)
+                }
                 Text(title)
                     .font(.system(.caption, design: .rounded))
                     .foregroundColor(.secondary)

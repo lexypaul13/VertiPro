@@ -7,14 +7,6 @@
 
 import SwiftUI
 import Charts // Make sure to import the Charts framework
-
-// Data model for the chart data points
-struct ExerciseDataPoint: Identifiable {
-    let id = UUID()
-    let date: Date
-    let averageAccuracy: Double
-}
-
 struct DashboardView: View {
     @ObservedObject var dataStore = ExerciseDataStore.shared
 
