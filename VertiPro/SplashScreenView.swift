@@ -6,13 +6,16 @@ struct SplashScreenView: View {
     @State private var scale = 0.7
     @State private var isAnimating = false
     @State private var hasAcceptedDisclaimer = UserDefaults.standard.bool(forKey: "hasAcceptedDisclaimer")
+    @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     
     var body: some View {
         if isActive {
-            if hasAcceptedDisclaimer {
-                MainTabView()
-            } else {
+            if !hasAcceptedDisclaimer {
                 DisclaimerView(hasAcceptedDisclaimer: $hasAcceptedDisclaimer)
+            } else if !hasCompletedOnboarding {
+                OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
+            } else {
+                MainTabView()
             }
         } else {
             ZStack {
