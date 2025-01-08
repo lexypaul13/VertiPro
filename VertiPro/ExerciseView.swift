@@ -211,25 +211,31 @@ struct ExerciseView: View {
     }
     
     private func endExercise() {
-        stopExercise()
+        cleanup()
+        dismiss()
     }
     
     private func stopExercise() {
         isExerciseActive = false
         headTracker.stopTracking()
         
-        let finalSession = ExerciseSession(
-            date: Date(),
-            duration: duration - timerValue,
-            score: score,
-            totalTargets: sessionMovements.count,
-            movements: sessionMovements,
-            dizzinessLevel: dizzinessLevel
-        )
-        
-        ExerciseDataStore.shared.addSession(finalSession)
-        session = finalSession
-        shouldNavigateToResults = true
+        // Only save and show results if the exercise was completed normally (timer reached 0)
+        if timerValue == 0 {
+            let finalSession = ExerciseSession(
+                date: Date(),
+                duration: duration - timerValue,
+                score: score,
+                totalTargets: sessionMovements.count,
+                movements: sessionMovements,
+                dizzinessLevel: dizzinessLevel
+            )
+            
+            ExerciseDataStore.shared.addSession(finalSession)
+            session = finalSession
+            shouldNavigateToResults = true
+        } else {
+            dismiss()
+        }
     }
     
     private func startDirectionTimer() {

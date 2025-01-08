@@ -15,33 +15,33 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             DashboardView()
                 .tabItem {
-                    Image(systemName: "chart.bar")
-                    Text("Dashboard")
+                    Label("Dashboard", systemImage: "chart.bar.fill")
+                        .environment(\.symbolRenderingMode, .hierarchical)
                 }
                 .tag(0)
             
             DailyLogView()
                 .tabItem {
-                    Image(systemName: "calendar")
-                    Text("Daily Log")
+                    Label("Daily Log", systemImage: "calendar")
+                        .environment(\.symbolRenderingMode, .hierarchical)
                 }
                 .tag(1)
             
             ExerciseSummaryView()
                 .tabItem {
-                    Image(systemName: "list.bullet.clipboard")
-                    Text("History")
+                    Label("History", systemImage: "list.bullet.clipboard.fill")
+                        .environment(\.symbolRenderingMode, .hierarchical)
                 }
                 .tag(2)
             
             SettingsView()
                 .tabItem {
-                    Image(systemName: "gearshape")
-                    Text("Settings")
+                    Label("Settings", systemImage: "gearshape.fill")
+                        .environment(\.symbolRenderingMode, .hierarchical)
                 }
                 .tag(3)
         }
-        .toolbar(.hidden, for: .tabBar)  // This will hide the tab bar when needed
+        .tint(Color.blue)
     }
 }
 

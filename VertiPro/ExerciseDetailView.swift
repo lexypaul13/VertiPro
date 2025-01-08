@@ -196,6 +196,8 @@ struct ClinicalMetricCard: View {
     let icon: String
     let color: Color
     
+    @Environment(\.colorScheme) var colorScheme
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -204,26 +206,26 @@ struct ClinicalMetricCard: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 14, height: 14)
-                        .foregroundColor(color)
+                        .colorInvert()
                 } else if icon == "arrow.triangle.2.circlepath" {
                     Image("Four Way Direction")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 14, height: 14)
-                        .foregroundColor(color)
+                        .colorInvert()
                 } else {
                     Image(systemName: icon)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(color)
+                        .foregroundStyle(.white)
                 }
                 Text(title)
                     .font(.system(.caption, design: .rounded))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white)
             }
             
             Text(value)
                 .font(.system(.title2, design: .rounded, weight: .bold))
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()

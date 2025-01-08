@@ -13,9 +13,7 @@ struct VertiProApp: App {
 
     var body: some Scene {
         WindowGroup {
-                MainTabView()
-            
+            SplashScreenView()
         }
-
     }
 }

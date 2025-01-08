@@ -120,6 +120,8 @@ struct StatisticView: View {
     let value: String
     let label: String
     
+    @Environment(\.colorScheme) var colorScheme
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -128,16 +130,16 @@ struct StatisticView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 20, height: 20)
-                        .foregroundStyle(.secondary)
+                        .colorInvert()
                 } else if icon == "figure.walk" {
                     Image("Four Way Direction")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 20, height: 20)
-                        .foregroundStyle(.secondary)
+                        .colorInvert()
                 } else {
                     Image(systemName: icon)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white)
                 }
                 Text(value)
                     .bold()
