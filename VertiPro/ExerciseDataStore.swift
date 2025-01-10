@@ -178,6 +178,14 @@ class ExerciseDataStore: ObservableObject {
             }
         }
     }
+    
+    func clearAllData() {
+        sessions.removeAll()
+        UserDefaults.standard.removeObject(forKey: "exerciseSessions")
+        UserDefaults.standard.removeObject(forKey: "hasAcceptedDisclaimer")
+        UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.synchronize()
+    }
 }
 
 

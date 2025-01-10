@@ -13,10 +13,28 @@ struct SettingsView: View {
     @State private var notificationsEnabled = true
     @State private var textSize: Double = 16 // Default text size
     @State private var hapticFeedbackEnabled = true
+    @State private var showingInstructions = false
+    @State private var showingClearDataAlert = false
+    @StateObject private var dataStore = ExerciseDataStore.shared
 
     var body: some View {
         NavigationView {
             Form {
+                // Exercise Instructions Section
+                Section {
+                    Button(action: { showingInstructions = true }) {
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(.blue)
+                            Text("Exercise Instructions")
+                        }
+                    }
+                } header: {
+                    Text("Help")
+                } footer: {
+                    Text("Learn how to perform exercises effectively and understand your progress metrics.")
+                }
+
                 // Notifications Section
                 Section(header: Text("Notifications")) {
                     Toggle(isOn: $notificationsEnabled) {
@@ -46,29 +64,24 @@ struct SettingsView: View {
                     }
                 }
 
-                // Privacy Section
-//                Section(header: Text("Privacy")) {
-//                    NavigationLink(destination: PrivacyPolicyView()) {
-//                        Text("Privacy Policy")
-//                    }
-//                    Button(action: {
-//                        // Handle data export
-//                    }) {
-//                        Text("Export Data")
-//                    }
-//                    Button(action: {
-//                        // Handle data deletion
-//                    }) {
-//                        Text("Delete Data")
-//                            .foregroundColor(.red)
-//                    }
-//                }
+                // Data Management Section
+                Section {
+                    Button(role: .destructive, action: {
+                        showingClearDataAlert = true
+                    }) {
+                        HStack {
+                            Image(systemName: "trash.fill")
+                            Text("Clear All Data")
+                        }
+                    }
+                } header: {
+                    Text("Data Management")
+                } footer: {
+                    Text("This will permanently delete all exercise data and reset the app to its initial state.")
+                }
 
                 // About Section
                 Section(header: Text("About")) {
-//                    NavigationLink(destination: OnboardingView()) {
-//                        Text("App Tutorial")
-//                    }
                     Button(action: {
                         // Share progress with healthcare provider
                     }) {
@@ -78,6 +91,17 @@ struct SettingsView: View {
             }
             .navigationBarTitle("Settings", displayMode: .inline)
             .environment(\.sizeCategory, fontSizeCategory)
+            .sheet(isPresented: $showingInstructions) {
+                ExerciseInstructionsView()
+            }
+            .alert("Clear All Data?", isPresented: $showingClearDataAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear Data", role: .destructive) {
+                    dataStore.clearAllData()
+                }
+            } message: {
+                Text("This will permanently delete all your exercise data and reset the app. This action cannot be undone.")
+            }
         }
     }
 
@@ -118,4 +142,8 @@ struct SettingsView: View {
             }
         }
     }
+}
+
+#Preview {
+    SettingsView()
 }
