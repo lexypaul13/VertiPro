@@ -104,9 +104,7 @@ struct DashboardView: View {
                 }
             }
             .navigationTitle("Dashboard")
-            .onAppear {
-                dataStore.clearAndReloadData()
-            }
+          
         }
     }
 

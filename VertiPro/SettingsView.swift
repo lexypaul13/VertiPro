@@ -10,76 +10,47 @@ import SwiftUI
 import UserNotifications
 
 struct SettingsView: View {
-    @State private var notificationsEnabled = true
-    @State private var textSize: Double = 16 // Default text size
-    @State private var hapticFeedbackEnabled = true
+    @ObservedObject var dataStore = ExerciseDataStore.shared
     @State private var showingInstructions = false
-    @State private var showingClearDataAlert = false
-    @StateObject private var dataStore = ExerciseDataStore.shared
-
+    @State private var fontSizeCategory: ContentSizeCategory = .large
+    @State private var notificationsEnabled = false
+    @State private var notificationTime = Date()
+    
     var body: some View {
         NavigationView {
             Form {
-                // Exercise Instructions Section
-                Section {
-                    Button(action: { showingInstructions = true }) {
-                        HStack {
-                            Image(systemName: "doc.text.fill")
-                                .foregroundColor(.blue)
-                            Text("Exercise Instructions")
-                        }
-                    }
-                } header: {
-                    Text("Help")
-                } footer: {
-                    Text("Learn how to perform exercises effectively and understand your progress metrics.")
-                }
-
-                // Notifications Section
-                Section(header: Text("Notifications")) {
-                    Toggle(isOn: $notificationsEnabled) {
-                        Text("Exercise Reminders")
-                    }
-                    .onChange(of: notificationsEnabled) { value in
-                        if value {
-                            scheduleExerciseReminder()
-                        } else {
-                            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-                        }
-                    }
-                }
-
                 // Accessibility Section
                 Section(header: Text("Accessibility")) {
-                    // Text Size Slider
-                    VStack(alignment: .leading) {
-                        Text("Text Size: \(Int(textSize))")
-                        Slider(value: $textSize, in: 12...24, step: 1)
-                            .accessibilityValue("\(Int(textSize)) points")
-                    }
-
-                    // Haptic Feedback Toggle
-                    Toggle(isOn: $hapticFeedbackEnabled) {
-                        Text("Haptic Feedback")
+                    Picker("Font Size", selection: $fontSizeCategory) {
+                        Text("Small").tag(ContentSizeCategory.small)
+                        Text("Medium").tag(ContentSizeCategory.medium)
+                        Text("Large").tag(ContentSizeCategory.large)
+                        Text("Extra Large").tag(ContentSizeCategory.extraLarge)
                     }
                 }
-
-                // Data Management Section
-                Section {
-                    Button(role: .destructive, action: {
-                        showingClearDataAlert = true
+                
+                // Notifications Section
+                Section(header: Text("Notifications")) {
+                    Toggle("Enable Reminders", isOn: $notificationsEnabled)
+                    
+                    if notificationsEnabled {
+                        DatePicker(
+                            "Reminder Time",
+                            selection: $notificationTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                    }
+                }
+                
+                // Help Section
+                Section(header: Text("Help")) {
+                    Button(action: {
+                        showingInstructions = true
                     }) {
-                        HStack {
-                            Image(systemName: "trash.fill")
-                            Text("Clear All Data")
-                        }
+                        Text("Exercise Instructions")
                     }
-                } header: {
-                    Text("Data Management")
-                } footer: {
-                    Text("This will permanently delete all exercise data and reset the app to its initial state.")
                 }
-
+                
                 // About Section
                 Section(header: Text("About")) {
                     Button(action: {
@@ -94,30 +65,6 @@ struct SettingsView: View {
             .sheet(isPresented: $showingInstructions) {
                 ExerciseInstructionsView()
             }
-            .alert("Clear All Data?", isPresented: $showingClearDataAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Clear Data", role: .destructive) {
-                    dataStore.clearAllData()
-                }
-            } message: {
-                Text("This will permanently delete all your exercise data and reset the app. This action cannot be undone.")
-            }
-        }
-    }
-
-    // Helper to convert text size to DynamicTypeSize
-    var fontSizeCategory: ContentSizeCategory {
-        switch textSize {
-        case 12...14:
-            return .small
-        case 15...17:
-            return .medium
-        case 18...20:
-            return .large
-        case 21...24:
-            return .extraLarge
-        default:
-            return .medium
         }
     }
 

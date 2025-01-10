@@ -13,6 +13,10 @@ class ExerciseDataStore: ObservableObject {
     static let shared = ExerciseDataStore()
     @Published var sessions: [ExerciseSession] = []
     
+    private var shouldGenerateMockData: Bool {
+        !UserDefaults.standard.bool(forKey: "hasInitializedData")
+    }
+    
     var weeklyChange: Int {
         let calendar = Calendar.current
         let now = Date()
@@ -31,8 +35,9 @@ class ExerciseDataStore: ObservableObject {
     
     private init() {
         loadSessions()
-        if sessions.isEmpty {
+        if sessions.isEmpty && shouldGenerateMockData {
             generateMockData()
+            UserDefaults.standard.set(true, forKey: "hasInitializedData")
         }
     }
     
@@ -147,12 +152,6 @@ class ExerciseDataStore: ObservableObject {
         return movements
     }
     
-    func clearAndReloadData() {
-        sessions.removeAll()
-        UserDefaults.standard.removeObject(forKey: "exerciseSessions")
-        generateMockData()
-    }
-    
     func addSession(_ session: ExerciseSession) {
         sessions.append(session)
         saveSessions()
@@ -177,14 +176,6 @@ class ExerciseDataStore: ObservableObject {
                 print("Error loading sessions: \(error)")
             }
         }
-    }
-    
-    func clearAllData() {
-        sessions.removeAll()
-        UserDefaults.standard.removeObject(forKey: "exerciseSessions")
-        UserDefaults.standard.removeObject(forKey: "hasAcceptedDisclaimer")
-        UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
-        UserDefaults.standard.synchronize()
     }
 }
 
