@@ -13,8 +13,6 @@ struct SettingsView: View {
     @ObservedObject var dataStore = ExerciseDataStore.shared
     @State private var showingInstructions = false
     @State private var fontSizeCategory: ContentSizeCategory = .large
-    @State private var notificationsEnabled = false
-    @State private var notificationTime = Date()
     
     var body: some View {
         NavigationView {
@@ -29,19 +27,6 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Notifications Section
-                Section(header: Text("Notifications")) {
-                    Toggle("Enable Reminders", isOn: $notificationsEnabled)
-                    
-                    if notificationsEnabled {
-                        DatePicker(
-                            "Reminder Time",
-                            selection: $notificationTime,
-                            displayedComponents: .hourAndMinute
-                        )
-                    }
-                }
-                
                 // Help Section
                 Section(header: Text("Help")) {
                     Button(action: {
@@ -51,41 +36,31 @@ struct SettingsView: View {
                     }
                 }
                 
-                // About Section
-                Section(header: Text("About")) {
-                    Button(action: {
-                        // Share progress with healthcare provider
-                    }) {
-                        Text("Share Progress")
+                // Disclaimer Section
+                Section(header: Text("Important Information")) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Medical Disclaimer")
+                            .font(.headline)
+                        
+                        Text("VertiPro is not a medical device and is not intended to diagnose, treat, cure, or prevent any disease or medical condition.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Text("This app is designed as a supplementary tool for vestibular rehabilitation exercises. Always consult with your healthcare provider before starting any exercise program.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Text("If you experience severe dizziness, nausea, or any concerning symptoms, stop using the app immediately and seek medical attention.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
+                    .padding(.vertical, 8)
                 }
             }
             .navigationBarTitle("Settings", displayMode: .inline)
             .environment(\.sizeCategory, fontSizeCategory)
             .sheet(isPresented: $showingInstructions) {
                 ExerciseInstructionsView()
-            }
-        }
-    }
-
-    // Function to schedule exercise reminders
-    func scheduleExerciseReminder() {
-        let content = UNMutableNotificationContent()
-        content.title = "Time for your VertiPro exercise!"
-        content.body = "Keep up with your daily exercises to improve your balance."
-        content.sound = UNNotificationSound.default
-
-        // Schedule the notification for a specific time (e.g., 9 AM daily)
-        var dateComponents = DateComponents()
-        dateComponents.hour = 9
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-
-        let request = UNNotificationRequest(identifier: "exerciseReminder", content: content, trigger: trigger)
-
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Error scheduling notification: \(error)")
             }
         }
     }
