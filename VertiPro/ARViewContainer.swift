@@ -108,22 +108,31 @@ struct ARViewContainer: UIViewRepresentable {
         }
         
         private func setupArrow() {
-            let arrow = SCNCone(topRadius: 0, bottomRadius: 0.05, height: 0.12)
+            // Create a larger arrow cone
+            let arrow = SCNCone(topRadius: 0, bottomRadius: 0.08, height: 0.16)  // Increased size
             let material = SCNMaterial()
-            material.diffuse.contents = UIColor.systemBlue.withAlphaComponent(0.9)
-            material.emission.contents = UIColor.systemBlue.withAlphaComponent(0.8)
+            material.diffuse.contents = UIColor.systemBlue
+            material.emission.contents = UIColor.systemBlue
             material.lightingModel = .constant
             arrow.materials = [material]
             
             arrowNode = SCNNode(geometry: arrow)
             arrowNode?.position = SCNVector3(0, 0, -0.4)
             
+            // Enhanced glow effect
             let glowNode = SCNNode(geometry: arrow.copy() as! SCNGeometry)
-            glowNode.scale = SCNVector3(1.2, 1.2, 1.2)
+            glowNode.scale = SCNVector3(1.4, 1.4, 1.4)  // Increased glow size
             glowNode.geometry?.firstMaterial?.diffuse.contents = UIColor.clear
-            glowNode.geometry?.firstMaterial?.emission.contents = UIColor.systemBlue.withAlphaComponent(0.6)
+            glowNode.geometry?.firstMaterial?.emission.contents = UIColor.systemBlue.withAlphaComponent(0.8)
             glowNode.opacity = AdaptiveStyle.glowIntensity
             arrowNode?.addChildNode(glowNode)
+            
+            // Add a pulsing animation to make it more noticeable
+            let pulseAction = SCNAction.sequence([
+                SCNAction.scale(to: 1.1, duration: 0.5),
+                SCNAction.scale(to: 1.0, duration: 0.5)
+            ])
+            arrowNode?.runAction(SCNAction.repeatForever(pulseAction))
         }
         
         private func setupFeedbackNode() {

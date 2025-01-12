@@ -6,6 +6,7 @@ struct ExerciseView: View {
     let speed: Double
     let headMovement: String
     let duration: Int
+    let arrowSize: Double
     let onDismiss: () -> Void
     
     // State Management
@@ -30,11 +31,12 @@ struct ExerciseView: View {
     @State private var directionTimer: Timer?
     @Environment(\.scenePhase) private var scenePhase
     
-    init(dizzinessLevel: Double, speed: Double, headMovement: String, duration: Int, onDismiss: @escaping () -> Void) {
+    init(dizzinessLevel: Double, speed: Double, headMovement: String, duration: Int, arrowSize: Double = 32, onDismiss: @escaping () -> Void) {
         self.dizzinessLevel = dizzinessLevel
         self.speed = speed
         self.headMovement = headMovement
         self.duration = duration
+        self.arrowSize = arrowSize
         self.onDismiss = onDismiss
         _timerValue = State(initialValue: duration)
     }
@@ -82,7 +84,8 @@ struct ExerciseView: View {
                 // Movement Guide
                 MovementGuideView(
                     currentDirection: currentTargetDirection,
-                    accuracy: headTracker.movementAccuracy
+                    accuracy: headTracker.movementAccuracy,
+                    arrowSize: arrowSize
                 )
                 .padding(.horizontal, 40)
                 
@@ -358,6 +361,7 @@ struct StatusItem: View {
 struct MovementGuideView: View {
     let currentDirection: Direction
     let accuracy: Double
+    let arrowSize: Double
     
     var body: some View {
         ZStack {
@@ -380,20 +384,24 @@ struct MovementGuideView: View {
                 .opacity(0.3)
             
             // Direction Arrow
-            DirectionArrow(direction: currentDirection)
-                .frame(width: 24, height: 24)
+            DirectionArrow(direction: currentDirection, size: arrowSize)
+                .frame(width: arrowSize, height: arrowSize)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: currentDirection) { newDirection in
+            VoiceGuidanceService.shared.speakDirection(newDirection)
+        }
     }
 }
 
 // Direction Arrow Component
 struct DirectionArrow: View {
     let direction: Direction
+    var size: Double = 24  // Default size
     
     var body: some View {
         Image(systemName: "arrowtriangle.up.fill")
-            .font(.system(size: 24, weight: .bold))
+            .font(.system(size: size, weight: .bold))
             .foregroundStyle(
                 LinearGradient(
                     colors: [.blue, .teal],

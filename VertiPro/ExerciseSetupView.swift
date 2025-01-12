@@ -7,219 +7,205 @@
 
 // ExerciseSetupView.swift
 import SwiftUI
-import ARKit
 
 struct ExerciseSetupView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var dizzinessLevel = 5.0
-    @State private var speed = 2.0
-    @State private var headMovement = "All"
-    @State private var duration = 30
-    @State private var showingCountdown = false
-    @State private var showExerciseView = false
-    @State private var isNavigating = false
-    @State private var showAlert = false
-    @State private var alertMessage = ""
+    @State private var dizzinessLevel: Double = 5.0
+    @State private var selectedSpeed = 1
+    @State private var selectedMovement = 0
+    @State private var selectedDuration = 0
+    @State private var arrowSize: Double = 32
     
-    private let durations = [
-        (seconds: 30, label: "30 Seconds"),
-        (seconds: 60, label: "1 Minute"),
-        (seconds: 120, label: "2 Minutes")
+    private let speeds = ["Xt. Slow", "Slow", "Medium", "Fast", "Xt. Fast"]
+    private let movements = [
+        (title: "All", description: "Combined up/down and left/right"),
+        (title: "Up & Down", description: "Vertical movements only"),
+        (title: "Left & Right", description: "Horizontal movements only")
     ]
+    private let durations = ["30 Seconds", "1 Minute", "2 Minutes"]
+    private let arrowSizes = ["Small", "Medium", "Large"]
     
     var body: some View {
-        VStack(spacing: 30) {
-            // Title
-            Text("How dizzy you are feeling?")
-                .font(.title2)
-                .fontWeight(.bold)
-            Text("On a scale from 1-10")
-                .foregroundColor(.gray)
-            
-            // Dizziness Level Slider
-            VStack(spacing: 10) {
-                HStack {
-                    ForEach(1...10, id: \.self) { number in
-                        Text("\(number)")
-                            .font(.caption)
-                            .foregroundColor(number == Int(dizzinessLevel) ? .primary : .gray)
+        ScrollView {
+            VStack(spacing: 24) {
+                // Dizziness Level
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("How dizzy you are feeling?")
+                        .font(.title2)
+                        .bold()
+                    Text("On a scale from 1-10")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Slider(value: $dizzinessLevel, in: 1...10, step: 1)
+                        .tint(.green)
+                    
+                    // Numbers below slider
+                    HStack {
+                        ForEach(1...10, id: \.self) { number in
+                            Text("\(number)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+                
+                Divider()
+                
+                // Speed
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Speed")
+                        .font(.title2)
+                        .bold()
+                    
+                    Picker("", selection: $selectedSpeed) {
+                        ForEach(0..<speeds.count, id: \.self) { index in
+                            Text(speeds[index]).tag(index)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .padding(.vertical, 8)
+                
+                Divider()
+                
+                // Arrow Size
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Arrow Size")
+                        .font(.title2)
+                        .bold()
+                    
+                    HStack {
+                        ForEach(arrowSizes.indices, id: \.self) { index in
+                            let size = Double(index + 1) * 24 // Maps to 24, 48, 72
+                            VStack {
+                                Image(systemName: "arrow.up")
+                                    .font(.system(size: size/2))
+                                Text(arrowSizes[index])
+                                    .font(.caption)
+                            }
                             .frame(maxWidth: .infinity)
-                            .scaleEffect(number == Int(dizzinessLevel) ? 1.2 : 1.0)
-                            .animation(.spring(response: 0.3), value: dizzinessLevel)
+                            .padding(8)
+                            .background(arrowSize == size ? Color.blue.opacity(0.1) : Color.clear)
+                            .cornerRadius(8)
+                            .onTapGesture {
+                                withAnimation {
+                                    arrowSize = size
+                                }
+                            }
+                        }
                     }
                 }
+                .padding(.vertical, 8)
                 
-                Slider(value: $dizzinessLevel, in: 1...10, step: 1)
-                    .tint(dizzinessGradient)
-            }
-            .padding(.horizontal)
-            
-            // Speed Selection
-            VStack(alignment: .leading, spacing: 15) {
-                Text("Speed")
-                    .font(.title3)
-                    .fontWeight(.semibold)
+                Divider()
                 
-                HStack {
-                    ForEach(["Xt. Slow", "Slow", "Medium", "Fast", "Xt. Fast"], id: \.self) { label in
-                        Text(label)
-                            .font(.caption)
-                            .foregroundColor(speedLabel == label ? .primary : .gray)
-                            .scaleEffect(speedLabel == label ? 1.2 : 1.0)
-                            .animation(.spring(response: 0.3), value: speed)
-                            .frame(maxWidth: .infinity)
+                // Head Movement
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Head Movement")
+                        .font(.title2)
+                        .bold()
+                    
+                    ForEach(movements.indices, id: \.self) { index in
+                        Button {
+                            selectedMovement = index
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(movements[index].title)
+                                        .font(.headline)
+                                    Text(movements[index].description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                if selectedMovement == index {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .padding()
+                            .background(selectedMovement == index ? Color.blue.opacity(0.1) : Color.clear)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
+                .padding(.vertical, 8)
                 
-                Slider(value: $speed, in: 0...4, step: 1)
-                    .tint(.blue)
-            }
-            .padding(.horizontal)
-            
-            // Head Movement Selection
-            VStack(alignment: .leading, spacing: 15) {
-                Text("Head Movement")
-                    .font(.title3)
-                    .fontWeight(.semibold)
+                Divider()
                 
-                Picker("Head Movement", selection: $headMovement) {
-                    Text("All").tag("All")
-                    Text("Up & Down").tag("Up & Down")
-                    Text("Left & Right").tag("Left & Right")
-                }
-                .pickerStyle(.segmented)
-            }
-            .padding(.horizontal)
-            
-            // Exercise Mode Selection
-            VStack(alignment: .leading, spacing: 15) {
-                Text("Exercise Mode")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                
-                Picker("Duration", selection: $duration) {
-                    ForEach(durations, id: \.seconds) { duration in
-                        Text(duration.label).tag(duration.seconds)
+                // Exercise Mode
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Exercise Mode")
+                        .font(.title2)
+                        .bold()
+                    
+                    Picker("", selection: $selectedDuration) {
+                        ForEach(0..<durations.count, id: \.self) { index in
+                            Text(durations[index]).tag(index)
+                        }
                     }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
-            }
-            .padding(.horizontal)
-            
-            Spacer()
-            
-            // Start Button
-            Button(action: {
-                showingCountdown = true
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Start Exercise")
-                        .font(.system(size: 17, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .background(
-                    LinearGradient(
-                        colors: [Color.blue, Color.blue.opacity(0.8)],
-                        startPoint: .top,
-                        endPoint: .bottom
+                .padding(.vertical, 8)
+                                
+                // Start Exercise Button
+                Button {
+                    let exerciseView = ExerciseView(
+                        dizzinessLevel: dizzinessLevel,
+                        speed: getSpeedValue(),
+                        headMovement: movements[selectedMovement].title,
+                        duration: getDurationValue(),
+                        arrowSize: arrowSize,
+                        onDismiss: { dismiss() }
                     )
-                )
-                .clipShape(Capsule())
-                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 80) // Adjusted to sit above tab bar
-            .navigationBarBackButtonHidden(isNavigating)
-            .fullScreenCover(isPresented: $showingCountdown) {
-                CountdownView(
-                    headMovement: headMovement,
-                    isCountdownComplete: $showExerciseView,
-                    onDismiss: { 
-                        showingCountdown = false
-                        showExerciseView = false
-                        isNavigating = false
+                    
+                    let hostingController = UIHostingController(rootView: exerciseView)
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let window = windowScene.windows.first,
+                       let rootViewController = window.rootViewController {
+                        hostingController.modalPresentationStyle = .fullScreen
+                        rootViewController.present(hostingController, animated: true)
                     }
-                )
-            }
-            .fullScreenCover(isPresented: $showExerciseView) {
-                ExerciseView(
-                    dizzinessLevel: dizzinessLevel,
-                    speed: speed,
-                    headMovement: headMovement,
-                    duration: duration,
-                    onDismiss: { handleDismiss() }
-                )
-            }
-            .alert("Exercise Setup", isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(alertMessage)
-            }
-            .onAppear {
-                checkDeviceCapabilities()
-            }
-        }
-    }
-    
-    private func handleDismiss() {
-        isNavigating = false
-        showingCountdown = false
-        showExerciseView = false
-    }
-
-    
-    private func checkDeviceCapabilities() {
-        if !ARFaceTrackingConfiguration.isSupported {
-            alertMessage = "This device doesn't support face tracking."
-            showAlert = true
-        }
-        
-        // Check camera permissions
-        AVCaptureDevice.requestAccess(for: .video) { granted in
-            if !granted {
-                DispatchQueue.main.async {
-                    alertMessage = "Camera access is required for exercises."
-                    showAlert = true
+                } label: {
+                    HStack {
+                        Image(systemName: "play.fill")
+                        Text("Start Exercise")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color.blue)
+                    .cornerRadius(16)
                 }
             }
+            .padding(24)
+        }
+        .navigationBarBackButtonHidden(false)
+    }
+    
+    private func getDurationValue() -> Int {
+        switch selectedDuration {
+        case 0: return 30   // 30 seconds
+        case 1: return 60   // 1 minute
+        case 2: return 120  // 2 minutes
+        default: return 60
         }
     }
     
-    private func startExercise() {
-        isNavigating = true
-        showingCountdown = true
-    }
-    
-    private var speedLabel: String {
-        switch Int(speed) {
-        case 0: return "Xt. Slow"
-        case 1: return "Slow"
-        case 2: return "Medium"
-        case 3: return "Fast"
-        case 4: return "Xt. Fast"
-        default: return ""
+    private func getSpeedValue() -> Double {
+        switch selectedSpeed {
+        case 0: return 0.5  // Xt. Slow
+        case 1: return 1.0  // Slow
+        case 2: return 1.5  // Medium
+        case 3: return 2.0  // Fast
+        case 4: return 2.5  // Xt. Fast
+        default: return 1.5 // Medium (default)
         }
-    }
-    
-    private var dizzinessGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                .green,
-                .green,
-                .yellow,
-                .yellow,
-                .orange,
-                .orange,
-                .red,
-                .red
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
     }
 }
 
