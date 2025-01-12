@@ -384,7 +384,7 @@ struct MovementGuideView: View {
                 .opacity(0.3)
             
             // Direction Arrow
-            DirectionArrow(direction: currentDirection, size: arrowSize)
+            DirectionArrow(direction: currentDirection)
                 .frame(width: arrowSize, height: arrowSize)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -397,11 +397,10 @@ struct MovementGuideView: View {
 // Direction Arrow Component
 struct DirectionArrow: View {
     let direction: Direction
-    var size: Double = 24  // Default size
     
     var body: some View {
         Image(systemName: "arrowtriangle.up.fill")
-            .font(.system(size: size, weight: .bold))
+            .font(.system(size: 24, weight: .bold))
             .foregroundStyle(
                 LinearGradient(
                     colors: [.blue, .teal],
