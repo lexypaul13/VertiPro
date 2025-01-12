@@ -49,7 +49,6 @@ struct ARViewContainer: UIViewRepresentable {
         let headTracker: HeadTrackingManager
         var movementPathNode: SCNNode?
         var rangeIndicatorNode: SCNNode?
-        var centerMarkerNode: SCNNode?
         
         init(headTracker: HeadTrackingManager) {
             self.headTracker = headTracker
@@ -61,7 +60,6 @@ struct ARViewContainer: UIViewRepresentable {
             faceNode = SCNNode()
             setupMovementPath()
             setupRangeIndicator()
-            setupCenterMarker()
             setupArrow()
             setupFeedbackNode()
             setupAccuracyLabel()
@@ -69,13 +67,11 @@ struct ARViewContainer: UIViewRepresentable {
             if let arrowNode = arrowNode,
                let feedbackNode = feedbackNode,
                let movementPathNode = movementPathNode,
-               let rangeIndicatorNode = rangeIndicatorNode,
-               let centerMarkerNode = centerMarkerNode {
+               let rangeIndicatorNode = rangeIndicatorNode {
                 faceNode?.addChildNode(arrowNode)
                 faceNode?.addChildNode(feedbackNode)
                 faceNode?.addChildNode(movementPathNode)
                 faceNode?.addChildNode(rangeIndicatorNode)
-                faceNode?.addChildNode(centerMarkerNode)
             }
         }
         
@@ -109,18 +105,6 @@ struct ARViewContainer: UIViewRepresentable {
             
             rangeIndicatorNode = SCNNode(geometry: outerRing)
             rangeIndicatorNode?.position = SCNVector3(0, 0, -0.5)
-        }
-        
-        private func setupCenterMarker() {
-            // Create center position indicator
-            let marker = SCNBox(width: 0.01, height: 0.01, length: 0.01, chamferRadius: 0.002)
-            let material = SCNMaterial()
-            material.diffuse.contents = MedicalStyle.primaryBlue
-            material.emission.contents = MedicalStyle.primaryBlue
-            marker.materials = [material]
-            
-            centerMarkerNode = SCNNode(geometry: marker)
-            centerMarkerNode?.position = SCNVector3(0, 0, -0.5)
         }
         
         private func setupArrow() {
