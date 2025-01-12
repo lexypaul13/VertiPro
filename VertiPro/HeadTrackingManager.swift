@@ -36,10 +36,13 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
     var onDirectionChanged: ((Direction) -> Void)?
     
     private var lastDirection: Direction?
-    private let correctThreshold: Double = 12.0
+    private let centerThreshold: Double = 4.0
+    private let correctThreshold: Double = 5.0
     private let warningThreshold: Double = 8.0
     private var lastUpdateTime = Date()
-    private let minimumTimeBetweenUpdates: TimeInterval = 0.3
+    private var centerStartTime: Date?
+    private let minimumTimeBetweenUpdates: TimeInterval = 0.2
+    private let centerHoldTime: TimeInterval = 0.3
     let session = ARSession()
     
     // Add these properties for tracking
@@ -103,70 +106,80 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
         lastYaw = yawDegrees
         lastUpdateTime = Date()
         
-        // Update feedback with enhanced metrics
-        let (feedback, accuracy) = validateMovement(
-            pitch: pitchDegrees,
-            yaw: yawDegrees,
-            targetDirection: currentDirection,
-            metrics: metrics
-        )
+        // Check for center position with new threshold
+        let isInCenter = abs(pitchDegrees) < centerThreshold && abs(yawDegrees) < centerThreshold
         
-        // Update feedback immediately
-        DispatchQueue.main.async {
-            self.movementFeedback = feedback
-            self.movementAccuracy = accuracy
-        }
-        
-        // Check for center position
-        if abs(pitchDegrees) < warningThreshold && abs(yawDegrees) < warningThreshold {
-            if lastDirection != nil {  // Only print if coming from a movement
-                print("🎯 Head returned to center")
-            }
-            lastDirection = nil
-            return
-        }
-        
-        // Only detect new movement if we don't have a last direction (came from center)
-        guard lastDirection == nil else { return }
-        
-        // Log the dominant angle
-        let dominantAngle = abs(pitchDegrees) > abs(yawDegrees) ? "Pitch" : "Yaw"
-        print("🔍 Dominant movement: \(dominantAngle)")
-        
-        // Determine movement direction
-        let newDirection: Direction?
-        
-        if abs(pitchDegrees) > abs(yawDegrees) {
-            if pitchDegrees > correctThreshold {
-                newDirection = .up        // When pitch is positive (looking down), head is moving up
-                print("⬆️ Upward movement detected: \(String(format: "%.1f", pitchDegrees))°")
-            } else if pitchDegrees < -correctThreshold {
-                newDirection = .down      // When pitch is negative (looking up), head is moving down
-                print("⬇️ Downward movement detected: \(String(format: "%.1f", pitchDegrees))°")
-            } else {
-                newDirection = nil
+        if isInCenter {
+            if centerStartTime == nil {
+                // Just entered center position
+                centerStartTime = Date()
+                print("🎯 Head entering center position")
+            } else if Date().timeIntervalSince(centerStartTime!) >= centerHoldTime {
+                // Held center position long enough
+                if lastDirection != nil {
+                    print("✅ Center position confirmed")
+                    lastDirection = nil
+                }
             }
         } else {
-            if yawDegrees > correctThreshold {
-                newDirection = .left      // When yaw is positive, head is moving left
-                print("⬅️ Leftward movement detected: \(String(format: "%.1f", yawDegrees))°")
-            } else if yawDegrees < -correctThreshold {
-                newDirection = .right     // When yaw is negative, head is moving right
-                print("➡️ Rightward movement detected: \(String(format: "%.1f", yawDegrees))°")
-            } else {
-                newDirection = nil
-            }
-        }
-        
-        if let direction = newDirection {
-            print("🎯 Target Direction: \(currentDirection)")
-            print("🔄 Movement detected: \(direction)")
-            print("📊 Movement accuracy: \(Int(accuracy))%")
+            centerStartTime = nil
             
+            // Update feedback with enhanced metrics
+            let (feedback, accuracy) = validateMovement(
+                pitch: pitchDegrees,
+                yaw: yawDegrees,
+                targetDirection: currentDirection,
+                metrics: metrics
+            )
+            
+            // Update feedback immediately
             DispatchQueue.main.async {
-                self.currentDirection = direction
-                self.onDirectionChanged?(direction)
-                self.lastDirection = direction
+                self.movementFeedback = feedback
+                self.movementAccuracy = accuracy
+            }
+            
+            // Only detect new movement if we don't have a last direction (came from center)
+            guard lastDirection == nil else { return }
+            
+            // Log the dominant angle
+            let dominantAngle = abs(pitchDegrees) > abs(yawDegrees) ? "Pitch" : "Yaw"
+            print("🔍 Dominant movement: \(dominantAngle)")
+            
+            // Determine movement direction
+            let newDirection: Direction?
+            
+            if abs(pitchDegrees) > abs(yawDegrees) {
+                if pitchDegrees > correctThreshold {
+                    newDirection = .up        // When pitch is positive (looking down), head is moving up
+                    print("⬆️ Upward movement detected: \(String(format: "%.1f", pitchDegrees))°")
+                } else if pitchDegrees < -correctThreshold {
+                    newDirection = .down      // When pitch is negative (looking up), head is moving down
+                    print("⬇️ Downward movement detected: \(String(format: "%.1f", pitchDegrees))°")
+                } else {
+                    newDirection = nil
+                }
+            } else {
+                if yawDegrees > correctThreshold {
+                    newDirection = .left      // When yaw is positive, head is moving left
+                    print("⬅️ Leftward movement detected: \(String(format: "%.1f", yawDegrees))°")
+                } else if yawDegrees < -correctThreshold {
+                    newDirection = .right     // When yaw is negative, head is moving right
+                    print("➡️ Rightward movement detected: \(String(format: "%.1f", yawDegrees))°")
+                } else {
+                    newDirection = nil
+                }
+            }
+            
+            if let direction = newDirection {
+                print("🎯 Target Direction: \(currentDirection)")
+                print("🔄 Movement detected: \(direction)")
+                print("📊 Movement accuracy: \(Int(accuracy))%")
+                
+                DispatchQueue.main.async {
+                    self.currentDirection = direction
+                    self.onDirectionChanged?(direction)
+                    self.lastDirection = direction
+                }
             }
         }
     }
@@ -180,12 +193,12 @@ class HeadTrackingManager: NSObject, ObservableObject, ARSessionDelegate {
         
         let accuracy = (1 - abs(angle) / correctThreshold) * 100
         
-        if abs(angle) > correctThreshold {
-            return (.incorrect, max(0, accuracy))
-        } else if abs(angle) > warningThreshold {
+        if abs(angle) <= correctThreshold {
+            return (.correct, min(100, accuracy))
+        } else if abs(angle) <= warningThreshold {
             return (.borderline, max(0, accuracy))
         } else {
-            return (.correct, min(100, accuracy))
+            return (.incorrect, max(0, accuracy))
         }
     }
     

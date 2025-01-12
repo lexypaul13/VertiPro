@@ -20,6 +20,10 @@ private struct MedicalStyle {
     static let borderWidth: CGFloat = 1.0
     static let cornerRadius: CGFloat = 12.0
     static let gridSpacing: CGFloat = 20.0
+    
+    // Warning Message Style
+    static let warningBackground = UIColor(white: 0.1, alpha: 0.6)
+    static let warningText = UIColor(white: 0.9, alpha: 0.9)
 }
 
 private struct AdaptiveStyle {
@@ -49,6 +53,8 @@ struct ARViewContainer: UIViewRepresentable {
         let headTracker: HeadTrackingManager
         var movementPathNode: SCNNode?
         var rangeIndicatorNode: SCNNode?
+        var warningLabel: UILabel?
+        var warningView: UIVisualEffectView?
         
         init(headTracker: HeadTrackingManager) {
             self.headTracker = headTracker
@@ -185,6 +191,43 @@ struct ARViewContainer: UIViewRepresentable {
             accuracyLabel?.layer.shadowRadius = 8
         }
         
+         func setupWarningMessage() {
+            let blurEffect = UIBlurEffect(style: .dark)
+            warningView = UIVisualEffectView(effect: blurEffect)
+            warningView?.alpha = 0
+            warningView?.layer.cornerRadius = 12
+            warningView?.clipsToBounds = true
+            
+            warningLabel = UILabel()
+            warningLabel?.text = "⚠️ Center your gaze"
+            warningLabel?.textAlignment = .center
+            warningLabel?.font = .systemFont(ofSize: 18, weight: .medium)
+            warningLabel?.textColor = MedicalStyle.warningText
+            warningLabel?.numberOfLines = 0
+            
+            if let warningView = warningView, let warningLabel = warningLabel {
+                warningView.contentView.addSubview(warningLabel)
+                warningLabel.translatesAutoresizingMaskIntoConstraints = false
+                NSLayoutConstraint.activate([
+                    warningLabel.centerXAnchor.constraint(equalTo: warningView.centerXAnchor),
+                    warningLabel.centerYAnchor.constraint(equalTo: warningView.centerYAnchor),
+                    warningLabel.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 20),
+                    warningLabel.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -20)
+                ])
+            }
+        }
+        
+        func showWarningMessage(_ show: Bool) {
+            guard let warningView = warningView else { return }
+            
+            // Only animate if the state is changing
+            if (show && warningView.alpha < 0.1) || (!show && warningView.alpha > 0.1) {
+                UIView.animate(withDuration: 0.5, delay: 0, options: [.beginFromCurrentState]) {
+                    warningView.alpha = show ? 0.9 : 0
+                }
+            }
+        }
+        
         func updateFeedback(_ feedback: HeadTrackingManager.MovementFeedback, accuracy: Double) {
             guard let feedbackNode = feedbackNode else { return }
             
@@ -283,6 +326,18 @@ struct ARViewContainer: UIViewRepresentable {
             guard let faceAnchor = anchor as? ARFaceAnchor else { return }
             faceNode?.simdTransform = faceAnchor.transform
             
+            // Get face orientation angles
+            let eulerAngles = faceAnchor.transform.eulerAngles
+            let pitch = abs(eulerAngles.x * 180 / .pi)  // Convert to degrees
+            let yaw = abs(eulerAngles.y * 180 / .pi)    // Convert to degrees
+            
+            // Check if head is turned too far from center (more than 15 degrees in any direction)
+            let isLookingAwayFromTarget = pitch > 15 || yaw > 15
+            
+            DispatchQueue.main.async {
+                self.showWarningMessage(isLookingAwayFromTarget)
+            }
+            
             if let camera = arView?.pointOfView {
                 let lookAtConstraint = SCNLookAtConstraint(target: camera)
                 lookAtConstraint.isGimbalLockEnabled = true
@@ -316,6 +371,18 @@ struct ARViewContainer: UIViewRepresentable {
                 accuracyLabel.bottomAnchor.constraint(equalTo: arView.bottomAnchor, constant: -150),
                 accuracyLabel.widthAnchor.constraint(equalToConstant: 200),
                 accuracyLabel.heightAnchor.constraint(equalToConstant: 80)
+            ])
+        }
+        
+        context.coordinator.setupWarningMessage()
+        if let warningView = context.coordinator.warningView {
+            arView.addSubview(warningView)
+            warningView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                warningView.centerXAnchor.constraint(equalTo: arView.centerXAnchor),
+                warningView.topAnchor.constraint(equalTo: arView.safeAreaLayoutGuide.topAnchor, constant: 20),
+                warningView.widthAnchor.constraint(equalToConstant: 200),
+                warningView.heightAnchor.constraint(equalToConstant: 40)
             ])
         }
         
